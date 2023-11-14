@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Ipynb Viewer Pro</string>
+    <string name="title_activity_webview">Webview</string>
+
 </resources>

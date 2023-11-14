@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>IPYNB VIEWER</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1">
+    <script src="js/vendor/es5-shim.min.js"></script>
+    <script src="js/vendor/marked.min.js"></script>
+    <script src="js/vendor/purify.min.js"></script>
+    <script src="js/vendor/ansi_up.min.js"></script>
+    <script src="js/vendor/prism.min.js"></script>
+    <script src="js/vendor/katex.min.js"></script>
+    <script src="js/vendor/katex-auto-render.min.js"></script>
+    <script src="js/vendor/notebook.min.js"></script>
+    <link rel="stylesheet" href="css/vendor/katex.min.css" />
+    <link rel="stylesheet" href="css/vendor/prism.css" />
+    <link rel="stylesheet" href="css/notebook.css" />
+    <link rel="stylesheet" href="css/nbpreview.css" />
+    <style>
+        div#notebook-holder {
+            font-size: .5em;
+            margin: 0 auto;
+        }
+        .center-screen {
+					display: flex;
+					flex-direction: column;
+					justify-content: center;
+					align-items: center;
+					text-align: left;
+					min-height: 100vh;
+						}
+
+        </style>
+</head>
+<body>
+<div id="main" style="background-color:#ffffff" class="center-screen">
+    <div id="notebook-holder"></div>
+</div>
+
+<script src="js/nbpreview.js"></script>
+</body>
+
+</html>

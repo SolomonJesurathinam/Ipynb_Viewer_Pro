@@ -1,9 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomePage">
+    tools:context=".HomePage"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/backgroundfinal">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <ImageView
+        android:id="@+id/feedback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/heartfinal"
+        android:layout_marginTop="10sp"/>
+
+
+    <TextView
+        android:layout_marginTop="40sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="@font/rubik_mono_one"
+        android:text="IPYNB VIEWER"
+        android:textSize="20sp"
+        android:layout_marginBottom="20sp"/>
+
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        app:lottie_fileName="titleanimation.lottie"
+        android:layout_gravity="center"
+        android:layout_marginBottom="20sp"
+        app:lottie_loop="true"
+        app:lottie_autoPlay="true"/>
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp">
+
+        <Button
+            android:id="@+id/choosefile"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/widgets"
+            android:fontFamily="@font/roboto_condensed_regular"
+            android:text="SELECT FILE"
+            android:textColor="@color/widgetsText"
+            android:textStyle="bold"/>
+
+        <RadioGroup
+            android:id="@+id/radioRender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentRight="true">
+
+            <RadioButton
+                android:id="@+id/radioReal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Realistic"
+                app:buttonTint="@color/widgets"
+                android:fontFamily="@font/roboto_condensed_regular"
+                android:textColor="@color/black"/>
+
+            <RadioButton
+                android:id="@+id/radioBasic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Basic "
+                app:buttonTint="@color/widgets"
+                android:fontFamily="@font/roboto_condensed_regular"
+                android:textColor="@color/black"/>
+
+        </RadioGroup>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <Button
+            android:id="@+id/retrieveAll"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:strokeColor="@color/widgets"
+            android:fontFamily="@font/roboto_condensed_regular"
+            android:text="SCAN FILES"
+            android:textColor="@color/black"
+            android:textStyle="bold"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_marginTop="50sp"
+            android:id="@+id/recyclerViewFiles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="vertical"
+            android:background="@color/white"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:visibility="invisible"/>
+
+    </RelativeLayout>
+
+
+</LinearLayout>
