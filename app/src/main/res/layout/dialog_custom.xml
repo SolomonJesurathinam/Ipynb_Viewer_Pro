@@ -1,0 +1,49 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/backgroundfinal">
+
+    <TextView
+        android:id="@+id/tvPermissionsTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Permissions Needed:"
+        android:textColor="@color/black"
+        android:textAppearance="?attr/textAppearanceHeadline6" />
+
+    <TextView
+        android:id="@+id/tvPermissionsMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/tvPrivacyPolicyTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:text="Privacy Policy:"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:layout_marginTop="24dp" />
+
+    <TextView
+        android:id="@+id/tvPrivacyPolicyMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/tvPrivacyEndMess"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:text="Please grant the necessary permissions to continue using all the features of our app."
+        android:layout_marginTop="16dp"
+        android:textStyle="bold"/>
+
+
+</LinearLayout>

@@ -9,31 +9,29 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.util.Base64;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.Toast;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -47,11 +45,14 @@ public class HomePage extends AppCompatActivity {
     private static final int REQUEST_CODE_MANAGE_STORAGE = 1;
     RecyclerView recyclerView;
     private ActivityResultLauncher<Intent> manageExternalStorageActivityResultLauncher;
+    LinearLayout recyclerLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
+
+        recyclerLayout = findViewById(R.id.recyclerLayout);
 
         //Shared Prefs
         homePagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -65,53 +66,35 @@ public class HomePage extends AppCompatActivity {
         radiobuttonLogic();
 
         //Android 13
-        manageExternalStorageActivityResultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    // Handle the result
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        if (Environment.isExternalStorageManager()) {
-                            displayRecyclerView();
-                        }
-                    }
-                });
+        storagePermissionandroid11();
 
         //Storage access
         retrieveAll = findViewById(R.id.retrieveAll);
         scanFilesLogic();
 
+        //displaying all the files
         recyclerView = findViewById(R.id.recyclerViewFiles);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        // After getting the files
-        /*
-        ArrayList<File> ipynbFiles = findIpynbFiles(Environment.getExternalStorageDirectory());
-        FileAdapter adapter = new FileAdapter(ipynbFiles);
-        recyclerView.setAdapter(adapter);
-        /*
-         */
-
         displayRecyclerView();
+
     }
 
 
+    //get file and share to webactivity
     public void fileHandling(){
         mGetContent = registerForActivityResult(new ActivityResultContracts.OpenDocument(),
                 new androidx.activity.result.ActivityResultCallback<Uri>() {
                     @Override
                     public void onActivityResult(Uri uri) {
-                        Toast.makeText(getApplicationContext(),uri.getPath(),Toast.LENGTH_LONG).show();
-                        try {
-                            String fileContent = readFileContent(uri);
-                            String base64EncodedString = Base64.encodeToString(fileContent.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP);
-                            DataHolder.getInstance().setEncodedData(base64EncodedString);
+                        if(uri != null){
+                            getContentResolver().takePersistableUriPermission(
+                                    uri,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                            );
+                            Toast.makeText(getApplicationContext(),uri.getPath(),Toast.LENGTH_LONG).show();
                             Intent intent = new Intent(getApplicationContext(), Webview.class);
+                            intent.putExtra("filePath",uri.toString());
                             startActivity(intent);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                        if (uri != null) {
-                            // Use the Uri to access the file
                         }
                     }
                 });
@@ -122,19 +105,6 @@ public class HomePage extends AppCompatActivity {
                 mGetContent.launch(new String[]{"application/*"});
             }
         });
-    }
-
-    //read file content
-    private String readFileContent(Uri uri) throws IOException {
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-        StringBuilder stringBuilder = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            stringBuilder.append(line);
-        }
-        inputStream.close();
-        return stringBuilder.toString();
     }
 
     //Render radio logic
@@ -160,6 +130,7 @@ public class HomePage extends AppCompatActivity {
     }
 
 
+    //handling storage permission result android <11
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -168,12 +139,6 @@ public class HomePage extends AppCompatActivity {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission was granted
                     displayRecyclerView();
-                    if(homePagePref.getInt("storageDeny",0) != 0){
-                        SharedPreferences.Editor editor = homePagePref.edit();
-                        editor.putInt("storageDeny",0);
-                        editor.apply();
-                        editor.commit();
-                    }
                 } else {
                     // Permission denied, show a Toast
                     Toast.makeText(this, "Storage access is required to display all jupyter files", Toast.LENGTH_SHORT).show();
@@ -189,43 +154,79 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
+
+    //handling storage permission result Android>11
+    public void storagePermissionandroid11(){
+        manageExternalStorageActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    // Handle the result
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        if (Environment.isExternalStorageManager()) {
+                            displayRecyclerView();
+                        }
+                    }
+                });
+    }
+
+
+    //displaying recycler view
     public void displayRecyclerView(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
             retrieveIpynbFiles();
+            if(homePagePref.getInt("storageDeny",0) != 0){
+                SharedPreferences.Editor editor = homePagePref.edit();
+                editor.putInt("storageDeny",0);
+                editor.apply();
+                editor.commit();
+            }
         }
         else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             retrieveIpynbFiles();
-        }
-        if(homePagePref.getInt("storageDeny",0) != 0){
-            SharedPreferences.Editor editor = homePagePref.edit();
-            editor.putInt("storageDeny",0);
-            editor.apply();
-            editor.commit();
+            if(homePagePref.getInt("storageDeny",0) != 0){
+                SharedPreferences.Editor editor = homePagePref.edit();
+                editor.putInt("storageDeny",0);
+                editor.apply();
+                editor.commit();
+            }
         }
     }
 
+
+    //Get al ipynb files and display in the recycler view
     public void retrieveIpynbFiles(){
         // You have the permission, start file scan
         ArrayList<File> ipynbFiles = findIpynbFiles(Environment.getExternalStorageDirectory());
-        FileAdapter adapter = new FileAdapter(ipynbFiles);
+        FileAdapter adapter = new FileAdapter(ipynbFiles, new FileAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(File file) {
+                String javaURI = file.toURI().toString();
+                Uri uri = Uri.parse(javaURI);
+                Intent intent = new Intent(getApplicationContext(), Webview.class);
+                intent.putExtra("filePath",uri.toString());
+                startActivity(intent);
+            }
+        });
         recyclerView.setAdapter(adapter);
         adapter.notifyDataSetChanged();
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                recyclerView.setVisibility(View.VISIBLE);
+                recyclerLayout.setVisibility(View.VISIBLE);
+                retrieveAll.setVisibility(View.INVISIBLE);
             }
         });
     }
 
+
+    //Logic for scan files button
     public void scanFilesLogic(){
         retrieveAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     if(!Environment.isExternalStorageManager()){
-                        Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                        manageExternalStorageActivityResultLauncher.launch(intent);
+                        showPrivacycontentfullStorage();
                     }
                 }
                 else{
@@ -236,7 +237,6 @@ public class HomePage extends AppCompatActivity {
                     }
 
                     if(homePagePref.getInt("storageDeny",0)>2){
-                        Log.e("TESTING","DENY"+String.valueOf(ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE)));
                         if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
                             // Permission denied
                             if (!ActivityCompat.shouldShowRequestPermissionRationale(HomePage.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
@@ -254,6 +254,8 @@ public class HomePage extends AppCompatActivity {
         });
     }
 
+
+    //Dialog box
     private void showPermissionSettingsDialog() {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Allow Permission Manually")
@@ -276,12 +278,65 @@ public class HomePage extends AppCompatActivity {
         dialog.show();
     }
 
+
+    //Open settings to provide manual storage access
     private void openAppSettings() {
         Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
         Uri uri = Uri.fromParts("package", getPackageName(), null);
         intent.setData(uri);
         startActivity(intent);
     }
+
+    //Dialog box
+    private void showPrivacycontentfullStorage() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_custom, null);
+        builder.setView(dialogView);
+
+        TextView tvPermissionsMessage = dialogView.findViewById(R.id.tvPermissionsMessage);
+        TextView tvPrivacyPolicyMessage = dialogView.findViewById(R.id.tvPrivacyPolicyMessage);
+
+        // Create a SpannableString to style the text
+        String normalText = " For devices running Android 11 and above, our app requires permission to access storage to scan for and display .ipynb files. This permission is critical for the app’s functionality, allowing you to manage and view your notebooks.";
+        SpannableString styledText = new SpannableString("Full Storage Access:" + normalText);
+        styledText.setSpan(new StyleSpan(Typeface.BOLD), 0, "Full Storage Access:".length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        tvPermissionsMessage.setText(styledText);
+
+        // Create a SpannableString to style the text
+        String normalText1 = " We value your privacy. Our app does not collect or transmit any personal data. All permissions requested are solely for enhancing your user experience and ensuring the app's core features function correctly.";
+        SpannableString styledText1 = new SpannableString("Your Privacy Matters:" + normalText1);
+        styledText1.setSpan(new StyleSpan(Typeface.BOLD), 0, "Your Privacy Matters:".length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        tvPrivacyPolicyMessage.setText(styledText1);
+
+        builder.setPositiveButton("Grant Permission", (dialog, id) -> {
+            openFullStorageSettings();
+        });
+        builder.setNegativeButton("Cancel", null);
+
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(dialogInterface -> {
+            // Get the positive button and change its color to black
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+
+            // Get the negative button and change its color to black
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+        });
+        dialog.show();
+    }
+
+
+    //Open settings to provide manual storage access
+    private void openFullStorageSettings() {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        manageExternalStorageActivityResultLauncher.launch(intent);
+    }
+
 
     //get List of ipynb files
     private ArrayList<File> findIpynbFiles(File root) {

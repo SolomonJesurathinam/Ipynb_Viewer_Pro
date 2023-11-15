@@ -12,23 +12,31 @@ import java.util.ArrayList;
 
 public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
     private ArrayList<File> mFiles;
+    private OnItemClickListener mListener;
 
-    public FileAdapter(ArrayList<File> files) {
+    public FileAdapter(ArrayList<File> files, OnItemClickListener listener) {
         mFiles = files;
+        mListener = listener;
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(File file);
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.file_item, parent, false);
-        return new ViewHolder(view);
+        return new ViewHolder(view,mListener);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         Log.e("TESTING",mFiles.get(position).getName());
-        holder.fileName.setText(mFiles.get(position).getName());
-        // Set onClickListener if needed to handle file selection
+        File file = mFiles.get(position);
+        holder.itemView.setTag(file);
+        holder.fileName.setText(file.getName());
+        Log.e("TESTING", file.getName());
     }
 
     @Override
@@ -39,9 +47,20 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView fileName;
 
-        public ViewHolder(View itemView) {
+        public ViewHolder(View itemView, final OnItemClickListener listener) {
             super(itemView);
             fileName = itemView.findViewById(R.id.file_name);
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (listener != null) {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            listener.onItemClick((File) itemView.getTag());
+                        }
+                    }
+                }
+            });
         }
     }
 }
