@@ -14,8 +14,8 @@ import java.util.List;
 
 public class SplashScreen extends AppCompatActivity {
 
-    private static final int SPLASH_SCREEN_TIME_OUT = 3000;
-    private static final int SPLASH_DISPLAY_LENGTH = 2000;
+    private static final int SPLASH_SCREEN_TIME_OUT = 2000;
+    private static final int SPLASH_DISPLAY_LENGTH = 1500;
 
 
     @Override

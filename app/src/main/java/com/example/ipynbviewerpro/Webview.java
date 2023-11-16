@@ -2,25 +2,17 @@ package com.example.ipynbviewerpro;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
-
-import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
-import android.widget.Toast;
-
+import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +24,6 @@ public class Webview extends AppCompatActivity {
     WebView webView;
     SharedPreferences webPref;
     private ProgressBar progressBar;
-    String encodedData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,14 +45,13 @@ public class Webview extends AppCompatActivity {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                encodedData = Base64.encodeToString(fileContent.getBytes(StandardCharsets.UTF_8), Base64.NO_WRAP);
+                String finalFileContent = fileContent;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if(encodedData != null){
+                        if(finalFileContent != null){
                             progressBar.setVisibility(View.GONE);
-                            Log.e("TESTING",encodedData);
-                            openWebview();
+                            openWebview(finalFileContent);
                         }
                     }
                 });
@@ -70,7 +60,15 @@ public class Webview extends AppCompatActivity {
 
     }
 
-    public void openWebview(){
+    public static void largeLog(String tag, String content) {
+        final int chunkSize = 4000;
+        for (int i = 0; i < content.length(); i += chunkSize) {
+            int end = Math.min(content.length(), i + chunkSize);
+            Log.d(tag, content.substring(i, end));
+        }
+    }
+
+    public void openWebview(String data){
         String render1 ="file:///android_asset/Render1/ipynbviewer.html";
         String render2 ="file:///android_asset/Render2/index.html";
         webView = (WebView) findViewById(R.id.webView);
@@ -85,7 +83,7 @@ public class Webview extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             public void onPageFinished(WebView view, String url) {
                 // Call JavaScript function here
-                webView.evaluateJavascript("javascript:processData('" + encodedData + "')", null);
+                sendDataToWebView(webView,data);
             }
         });
 
@@ -97,9 +95,22 @@ public class Webview extends AppCompatActivity {
         }
     }
 
+    private void sendTextDataToWebView(WebView webView1, String data, int chunkSize) {
+        for (int i = 0; i < data.length(); i += chunkSize) {
+            final String chunk = data.substring(i, Math.min(data.length(), i + chunkSize));
+            webView1.post(() -> webView1.evaluateJavascript("javascript:addDataChunk(" + JSONObject.quote(chunk) + ")", null));
+        }
+        webView1.post(() -> webView1.evaluateJavascript("javascript:processData()", null));
+    }
+
+    private void sendDataToWebView(WebView webView, String data) {
+        int chunkSize = 4000; // Adjust this size as needed
+        sendTextDataToWebView(webView, data, chunkSize);
+    }
+
     private String readFileContent(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         StringBuilder stringBuilder = new StringBuilder();
         String line;
         while ((line = reader.readLine()) != null) {
@@ -116,6 +127,15 @@ public class Webview extends AppCompatActivity {
             //view.loadUrl(url);
             return true;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (webView != null) {
+            webView.removeAllViews();
+            webView.destroy();
+        }
+        super.onDestroy();
     }
 }
 

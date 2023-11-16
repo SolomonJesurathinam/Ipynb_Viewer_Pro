@@ -12,11 +12,25 @@
         Prism.highlightAll();
     };
 
-    root.processData = function (encodedData) {
-            console.log(encodedData)
-            var data = atob(encodedData); // Decode Base64 string
-            console.log(data)
-            var parsed = JSON.parse(data);
+    root.largeLog = function(content, chunkSize = 4000) {
+        for (let i = 0; i < content.length; i += chunkSize) {
+            const chunk = content.substring(i, Math.min(i + chunkSize, content.length));
+            console.log(chunk);
+            }
+        }
+
+
+    let dataChunks = [];
+
+    root.addDataChunk = function(chunk){
+        dataChunks.push(chunk);
+    }
+
+    root.processData = function () {
+            let fullData = dataChunks.join('');
+            //largeLog(fullData); // Example: logging the full data
+            dataChunks = []; // Clear the chunks array
+            var parsed = JSON.parse(fullData);
             render_notebook(parsed);
             notebook.style.display = "block";
             $holder.style.fontSize = ".5em";
