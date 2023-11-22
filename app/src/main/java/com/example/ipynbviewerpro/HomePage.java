@@ -38,7 +38,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 public class HomePage extends AppCompatActivity {
 
-    Button choosefile, retrieveAll;
+    Button choosefile, retrieveAll, convertOnline;
     private ActivityResultLauncher<String[]> mGetContent;
     SharedPreferences homePagePref;
     RadioGroup radioRender;
@@ -90,6 +90,15 @@ public class HomePage extends AppCompatActivity {
             }
         });
 
+        //online features
+        convertOnline = findViewById(R.id.convertOnline);
+        convertOnline.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(),OnlineActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
 
@@ -226,7 +235,7 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void run() {
                 recyclerLayout.setVisibility(View.VISIBLE);
-                retrieveAll.setVisibility(View.INVISIBLE);
+                //retrieveAll.setVisibility(View.INVISIBLE);
             }
         });
     }

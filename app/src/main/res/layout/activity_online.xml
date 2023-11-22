@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".OnlineActivity"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/backgroundfinal">
+
+    <!-- Header Section -->
+    <TextView
+        android:id="@+id/tvBetaHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Online Conversion Beta"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:layout_centerHorizontal="true"
+        android:drawableEnd="@drawable/beta"
+        android:drawablePadding="8dp" />
+
+    <TextView
+        android:id="@+id/tvExplanation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:text="You’re about to try a new feature that converts .ipynb files to PDFs using Jupyter's original nbconvert tool, directly in the cloud. Here’s what you need to know:"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/txtViewdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:textSize="14sp" />
+    <TextView
+        android:id="@+id/txtPrivacy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:textSize="14sp" />
+    <TextView
+        android:id="@+id/txtTempStorage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:layout_marginTop="10dp"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/txtBeta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:textSize="14sp" />
+    <TextView
+        android:id="@+id/txtFeedback"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:text="If you encounter any issues, or have suggestions for improvement, please don't hesitate to send us your feedback. Your input is valuable and helps us refine the feature."
+        android:textSize="14sp" />
+    <TextView
+        android:id="@+id/tvclose"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:text="Ready to give it a spin?"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btnTryItNow"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textSize="12sp"
+        android:backgroundTint="@color/widgets"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:text="Try It Now"
+        android:textColor="@color/widgetsText" />
+
+    <!-- Feedback Section -->
+    <Button
+        android:id="@+id/btnSendFeedback"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnTryItNow"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        app:strokeColor="@color/widgets"
+        android:layout_marginTop="16dp"
+        android:textSize="12sp"
+        android:text="Send Feedback"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:textColor="@color/black" />
+
+
+
+</LinearLayout>

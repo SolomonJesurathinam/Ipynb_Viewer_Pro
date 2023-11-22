@@ -32,7 +32,6 @@ public class StreamlitActivity extends AppCompatActivity {
         setContentView(R.layout.activity_streamlit);
 
         String url = "https://nbtopdf.streamlit.app/";
-        //openChrome(url);
 
         progressBar = findViewById(R.id.progressBar);
         progresssBarDisplay("visible");
