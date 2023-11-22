@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -46,6 +47,8 @@ public class HomePage extends AppCompatActivity {
     RecyclerView recyclerView;
     private ActivityResultLauncher<Intent> manageExternalStorageActivityResultLauncher;
     LinearLayout recyclerLayout;
+
+    ImageView feedback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +79,16 @@ public class HomePage extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewFiles);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         displayRecyclerView();
+
+        //testing
+        feedback = findViewById(R.id.feedback);
+        feedback.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), StreamlitActivity.class);
+                startActivity(intent);
+            }
+        });
 
     }
 
