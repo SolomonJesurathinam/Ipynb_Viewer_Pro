@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/backgroundfinal">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/userName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style = "@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:hint="Name"
+        android:textColorHint="@color/black"
+        app:boxStrokeColor="@color/widgets"
+        app:hintTextColor="@color/widgets"
+        android:fontFamily="@font/roboto_condensed_regular">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:singleLine="true"
+            android:fontFamily="@font/roboto_condensed_regular"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/getFeedback"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style = "@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:hint="Feedback"
+        android:textColorHint="@color/black"
+        app:boxStrokeColor="@color/widgets"
+        app:hintTextColor="@color/widgets"
+        android:fontFamily="@font/roboto_condensed_regular">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:fontFamily="@font/roboto_condensed_regular"/>
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <Button
+        android:id="@+id/btnGetFeedback"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textSize="12sp"
+        android:backgroundTint="@color/widgets"
+        android:fontFamily="@font/roboto_condensed_regular"
+        android:text="Send Feedback"
+        android:textColor="@color/widgetsText" />
+
+</LinearLayout>
