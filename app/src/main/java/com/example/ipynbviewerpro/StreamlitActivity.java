@@ -19,7 +19,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 
-public class StreamlitActivity extends AppCompatActivity {
+public class    StreamlitActivity extends AppCompatActivity {
 
     private WebView webView;
     private ValueCallback<Uri[]> uploadMessage;

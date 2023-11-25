@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_download"
+        android:icon="@drawable/download"
+        android:title="Download"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_print"
+        android:icon="@drawable/print"
+        android:title="Print"
+        app:showAsAction="ifRoom" />
+</menu>

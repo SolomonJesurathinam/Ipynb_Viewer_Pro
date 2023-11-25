@@ -2,6 +2,7 @@ package com.example.ipynbviewerpro;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
 import android.graphics.Typeface;
@@ -14,8 +15,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class OnlineActivity extends AppCompatActivity {
 
@@ -69,9 +75,11 @@ public class OnlineActivity extends AppCompatActivity {
                 btnGetFeedback.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Log.e("TESTINGG",userName.getEditText().getText().toString());
-                        Log.e("TESTINGG",getFeedback.getEditText().getText().toString());
-                        dialog.dismiss();
+                        String name = userName.getEditText().getText().toString();
+                        String feedback = getFeedback.getEditText().getText().toString();
+                        String url = "https://script.google.com/macros/s/AKfycbw3S9VmBv934IT_ZuyKnR8OWuV_MPS6Vu7eJB8U3eExFrvb2S4iLBMiY2TcRbEkGeo9Hw/exec";
+                        String dataJson = "{\"name\":\"" + name + "\",\"feedback\":\"" + feedback + "\"}";
+                        sendFeedback(url,dataJson,dialog);
                     }
                 });
 
@@ -85,4 +93,30 @@ public class OnlineActivity extends AppCompatActivity {
         styledText.setSpan(new StyleSpan(Typeface.BOLD), 0, boldText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return styledText;
     }
+
+    private void sendFeedback(String url, String dataJson, AlertDialog dialog) {
+        PostDataTask task = new PostDataTask(url, dataJson, new PostResponseCallback() {
+            @Override
+            public void onResponse(String response) {
+                runOnUiThread(() -> {
+                    Toast.makeText(getApplicationContext(), "Feedback sent successfully", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(getApplicationContext(), "Failed to send feedback, try again", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(task);
+        executor.shutdown();
+    }
+
+
+
 }
