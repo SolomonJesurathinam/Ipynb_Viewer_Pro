@@ -3,8 +3,6 @@ package com.example.ipynbviewerpro;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.preference.PreferenceManager;
-
-import android.app.DownloadManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -15,11 +13,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileUtils;
-import android.print.PdfPrint;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,7 +28,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.Toast;
-
 import com.blankj.utilcode.util.PathUtils;
 import com.webviewtopdf.PdfView;
 import org.json.JSONObject;
@@ -96,7 +93,7 @@ public class Webview extends AppCompatActivity {
         final int chunkSize = 4000;
         for (int i = 0; i < content.length(); i += chunkSize) {
             int end = Math.min(content.length(), i + chunkSize);
-            Log.d(tag, content.substring(i, end));
+            //Log.d(tag, content.substring(i, end));
         }
     }
 
@@ -183,7 +180,7 @@ public class Webview extends AppCompatActivity {
         if (id == R.id.action_download) {
             Uri uri = Uri.parse(getIntent().getStringExtra("filePath"));
             if(uri != null){
-                String fname = getFilename(uri);
+                String fname = getFilename(getApplicationContext(),uri);
                 if(fname.endsWith(".ipynb")){
                     fname = fname.replace(".ipynb","");
                     try{
@@ -198,7 +195,7 @@ public class Webview extends AppCompatActivity {
         } else if (id == R.id.action_print) {
             Uri uri = Uri.parse(getIntent().getStringExtra("filePath"));
             if(uri != null){
-                String fname = getFilename(uri);
+                String fname = getFilename(getApplicationContext(),uri);
                 if(fname.endsWith(".ipynb")){
                     fname = fname.replace(".ipynb","");
                     createWebPrintJob(webView,Webview.this,fname);
@@ -220,31 +217,36 @@ public class Webview extends AppCompatActivity {
                 new PrintAttributes.Builder().build());
     }
 
-    public String getFilename(Uri uri){
+    public String getFilename(Context context, Uri uri){
         String fileName = null;
-        String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
-        ContentResolver cr = getApplicationContext().getContentResolver();
-        Cursor metaCursor = cr.query(uri, projection, null, null, null);
-        if (metaCursor != null) {
-            try {
-                if (metaCursor.moveToFirst()) {
-                    fileName = metaCursor.getString(0);
+        if(uri.getScheme().equalsIgnoreCase("content")){
+            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex != -1) {
+                        fileName = cursor.getString(nameIndex);
+                    }
                 }
-            } finally {
-                metaCursor.close();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            if (fileName == null) {
+                fileName = uri.getLastPathSegment();
+            }
+        }else if(uri.getScheme().equalsIgnoreCase("file")){
+            fileName = uri.getLastPathSegment();
         }
         return fileName;
     }
 
     public void saveAutomatically(String fname) {
+        setProgressBar("Visible");
         PdfView.createWebPrintJob(Webview.this, webView, getDirectory(), fname + ".pdf", new PdfView.Callback() {
             @Override
             public void success(String s) {
                 if(Build.VERSION.SDK_INT>= 29){
                     File file = new File(getDirectory(), fname+".pdf");
                     if (file.exists()){
-                        Log.d("TESTINGG","FILE EXISTS");
                         ContentResolver resolver = getApplicationContext().getContentResolver();
                         ContentValues contentValues = new ContentValues();
                         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fname);
@@ -262,22 +264,28 @@ public class Webview extends AppCompatActivity {
                             }
                         } catch (FileNotFoundException e) {
                             Toast.makeText(Webview.this,"Something happened, Please download again",Toast.LENGTH_SHORT).show();
+                            setProgressBar("Gone");
                         } catch (IOException e) {
                             Toast.makeText(Webview.this,"Something happened, Please download again",Toast.LENGTH_SHORT).show();
+                            setProgressBar("Gone");
                         }
                         file.delete();
-                        Toast.makeText(Webview.this, "PDF Downloaded at Documents/IpynbViewer", Toast.LENGTH_LONG).show();
+                        Toast.makeText(Webview.this, "PDF Downloaded at Downloads/IpynbViewer", Toast.LENGTH_LONG).show();
+                        setProgressBar("Gone");
                     }else{
                         Toast.makeText(Webview.this,"Something happened, Please download again",Toast.LENGTH_SHORT).show();
+                        setProgressBar("Gone");
                     }
                 }else{
-                    Toast.makeText(Webview.this, "PDF Downloaded at Documents/IpynbViewer", Toast.LENGTH_LONG).show();
+                    Toast.makeText(Webview.this, "PDF Downloaded at Downloads/IpynbViewer", Toast.LENGTH_LONG).show();
+                    setProgressBar("Gone");
                 }
             }
 
             @Override
             public void failure() {
                 Toast.makeText(Webview.this, "Storage access is denied, opening default Print method", Toast.LENGTH_LONG).show();
+                setProgressBar("Gone");
                 createWebPrintJob(webView, Webview.this, fname);
             }
         });
@@ -287,12 +295,24 @@ public class Webview extends AppCompatActivity {
         File directory;
         if(Build.VERSION.SDK_INT>= 29){
             directory = new File(PathUtils.getExternalAppDownloadPath().concat("/IpynbViewer/"));
-            Log.d("TESTINGG",directory.toString());
         }else{
             directory = new File(PathUtils.getExternalDownloadsPath().concat("/IpynbViewer/"));
-            Log.d("TESTINGG",directory.toString());
         }
         return directory;
+    }
+
+    public void setProgressBar(String status){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if(status.equalsIgnoreCase("Visible")){
+                    progressBar.setVisibility(View.VISIBLE);
+                }else if(status.equalsIgnoreCase("Gone")){
+                    progressBar.setVisibility(View.GONE);
+                }
+
+            }
+        });
     }
 
 }
