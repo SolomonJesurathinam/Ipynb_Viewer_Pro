@@ -5,7 +5,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -13,6 +15,8 @@ import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,6 +36,8 @@ public class OnlineActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_online);
+
+        setupSystemBars();
 
         txtViewdown = findViewById(R.id.txtViewdown);
         txtPrivacy = findViewById(R.id.txtPrivacy);
@@ -117,6 +123,30 @@ public class OnlineActivity extends AppCompatActivity {
         executor.shutdown();
     }
 
+    private void setupSystemBars() {
+        Window window = getWindow();
+
+        // Set the status bar color
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#F5F5F5"));
+
+        // Set the navigation bar color
+        window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
+
+        // For light status bar icons (dark icons for better visibility)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
+
+        // For light navigation bar icons (available from API 29)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
+    }
 
 
 }

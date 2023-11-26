@@ -14,6 +14,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -26,6 +27,8 @@ import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -55,6 +58,8 @@ public class HomePage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
+
+        setupSystemBars();
 
         recyclerLayout = findViewById(R.id.recyclerLayout);
 
@@ -389,6 +394,31 @@ public class HomePage extends AppCompatActivity {
             }
         }
         return fileList;
+    }
+
+    private void setupSystemBars() {
+        Window window = getWindow();
+
+        // Set the status bar color
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.parseColor("#F5F5F5"));
+
+        // Set the navigation bar color
+        window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
+
+        // For light status bar icons (dark icons for better visibility)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
+
+        // For light navigation bar icons (available from API 29)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int flags = window.getDecorView().getSystemUiVisibility();
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            window.getDecorView().setSystemUiVisibility(flags);
+        }
     }
 
 }
