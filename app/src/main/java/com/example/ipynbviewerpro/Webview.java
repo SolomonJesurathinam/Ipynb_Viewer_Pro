@@ -1,12 +1,20 @@
 package com.example.ipynbviewerpro;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.UriPermission;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -19,6 +27,8 @@ import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,10 +38,10 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import com.blankj.utilcode.util.PathUtils;
-import com.webviewtopdf.PdfView;
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,6 +52,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.OnBackPressedDispatcher;
 
 public class Webview extends AppCompatActivity {
 
@@ -49,12 +62,15 @@ public class Webview extends AppCompatActivity {
     SharedPreferences webPref;
     private ProgressBar progressBar;
     Toolbar toolbar;
+    private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_webview);
 
+        //set status and navigation colors
         setupSystemBars();
 
         //Toolbar
@@ -62,12 +78,32 @@ public class Webview extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
+        //webpref
         webPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
+        //progress bar and webview
         progressBar = findViewById(R.id.progressBar);
         progressBar.setVisibility(View.VISIBLE);
-
         webView = (WebView) findViewById(R.id.webView);
+        extractDataAndDisplay();
+
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
+            @Override
+            public void handleOnBackPressed() {
+                clearActiveUriState();
+                // If you want to delegate the back press event to the system after your handling,
+                // you can call:
+                // setEnabled(false);
+                // requireActivity().onBackPressed();
+
+                // Or, if you just want to finish the current activity, you can use:
+                finish();
+            }
+        };
+    }
+
+    //extract data
+    public void extractDataAndDisplay(){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -90,17 +126,9 @@ public class Webview extends AppCompatActivity {
                 });
             }
         }).start();
-
     }
 
-    public static void largeLog(String tag, String content) {
-        final int chunkSize = 4000;
-        for (int i = 0; i < content.length(); i += chunkSize) {
-            int end = Math.min(content.length(), i + chunkSize);
-            //Log.d(tag, content.substring(i, end));
-        }
-    }
-
+    //open webview
     public void openWebview(String data){
         String render1 ="file:///android_asset/Render1/ipynbviewer.html";
         String render2 ="file:///android_asset/Render2/index.html";
@@ -127,6 +155,7 @@ public class Webview extends AppCompatActivity {
         }
     }
 
+    //data in chunks
     private void sendTextDataToWebView(WebView webView1, String data, int chunkSize) {
         for (int i = 0; i < data.length(); i += chunkSize) {
             final String chunk = data.substring(i, Math.min(data.length(), i + chunkSize));
@@ -135,11 +164,13 @@ public class Webview extends AppCompatActivity {
         webView1.post(() -> webView1.evaluateJavascript("javascript:processData()", null));
     }
 
+    //send chunks data to webview
     private void sendDataToWebView(WebView webView, String data) {
         int chunkSize = 4000; // Adjust this size as needed
         sendTextDataToWebView(webView, data, chunkSize);
     }
 
+    //read data before splitting to chunks
     private String readFileContent(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
@@ -161,39 +192,36 @@ public class Webview extends AppCompatActivity {
         }
     }
 
+    //onDestory close all webview and clear
     @Override
     protected void onDestroy() {
         if (webView != null) {
             webView.removeAllViews();
             webView.destroy();
         }
+        clearActiveUriState();
         super.onDestroy();
     }
 
-    //Options for menu
+    //Options for menu list (Download and Print)
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_webview, menu);
         return true;
     }
 
+    //On click on DDownload and Print
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
         if (id == R.id.action_download) {
-            Uri uri = Uri.parse(getIntent().getStringExtra("filePath"));
-            if(uri != null){
-                String fname = getFilename(getApplicationContext(),uri);
-                if(fname.endsWith(".ipynb")){
-                    fname = fname.replace(".ipynb","");
-                    try{
-                        saveAutomatically(fname);
-                    }catch(Exception e){
-                        Toast.makeText(Webview.this, "Failed to save pdf, opening default Print method", Toast.LENGTH_LONG).show();
-                        createWebPrintJob(webView, Webview.this, fname);
-                    }
-                }
+            if(Build.VERSION.SDK_INT<29){
+                if(ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                    ActivityCompat.requestPermissions(Webview.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
+            }
+            }else {
+                downloadSteps();
             }
             return true;
         } else if (id == R.id.action_print) {
@@ -212,6 +240,23 @@ public class Webview extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    public void downloadSteps(){
+        Uri uri = Uri.parse(getIntent().getStringExtra("filePath"));
+        if(uri != null){
+            String fname = getFilename(getApplicationContext(),uri);
+            if(fname.endsWith(".ipynb")){
+                fname = fname.replace(".ipynb","");
+                try{
+                    saveAutomatically(fname);
+                }catch(Exception e){
+                    Toast.makeText(Webview.this, "Failed to save pdf, opening default Print method", Toast.LENGTH_LONG).show();
+                    Log.e("TESTINGG",e.toString());
+                    createWebPrintJob(webView, Webview.this, fname);
+                }
+            }
+        }
+    }
+
     //Default Print Job method for saving the pdf
     public void createWebPrintJob(android.webkit.WebView webView, Context context, String filename) {
         PrintManager printManager = (PrintManager) context
@@ -221,6 +266,7 @@ public class Webview extends AppCompatActivity {
                 new PrintAttributes.Builder().build());
     }
 
+    //File name from uri
     public String getFilename(Context context, Uri uri){
         String fileName = null;
         if(uri.getScheme().equalsIgnoreCase("content")){
@@ -243,12 +289,13 @@ public class Webview extends AppCompatActivity {
         return fileName;
     }
 
+    //Save Automatically (Download logic)
     public void saveAutomatically(String fname) {
         setProgressBar("Visible");
         PdfView.createWebPrintJob(Webview.this, webView, getDirectory(), fname + ".pdf", new PdfView.Callback() {
             @Override
             public void success(String s) {
-                if(Build.VERSION.SDK_INT>= 29){
+                if(Build.VERSION.SDK_INT>= 29){ //Targetting Android 10 and above
                     File file = new File(getDirectory(), fname+".pdf");
                     if (file.exists()){
                         ContentResolver resolver = getApplicationContext().getContentResolver();
@@ -280,7 +327,7 @@ public class Webview extends AppCompatActivity {
                         Toast.makeText(Webview.this,"Something happened, Please download again",Toast.LENGTH_SHORT).show();
                         setProgressBar("Gone");
                     }
-                }else{
+                }else{//android 9
                     Toast.makeText(Webview.this, "PDF Downloaded at Downloads/IpynbViewer", Toast.LENGTH_LONG).show();
                     setProgressBar("Gone");
                 }
@@ -288,13 +335,67 @@ public class Webview extends AppCompatActivity {
 
             @Override
             public void failure() {
-                Toast.makeText(Webview.this, "Storage access is denied, opening default Print method", Toast.LENGTH_LONG).show();
+                Toast.makeText(Webview.this, "Failed to save pdf, opening default Print method", Toast.LENGTH_LONG).show();
                 setProgressBar("Gone");
                 createWebPrintJob(webView, Webview.this, fname);
             }
         });
     }
 
+    //Dialog box
+    private void showPermissionSettingsDialog() {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Allow Permission Manually")
+                .setMessage("Need Storage Permission to download pdf to devices, please allow manually from settings.")
+                .setPositiveButton("App Settings", (dialogInterface, which) -> {
+                    // Intent to open app settings
+                    openAppSettings();
+                })
+                .setNegativeButton("Cancel", (dialogInterface, which) -> dialogInterface.dismiss())
+                .create();
+        dialog.setOnShowListener(dialogInterface -> {
+            // Change the positive button color
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+
+            // Change the negative button color
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+        });
+        dialog.show();
+    }
+
+    //Open settings to provide manual storage access
+    private void openAppSettings() {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        startActivity(intent);
+    }
+
+    //handling permission
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission was granted
+                    downloadSteps();
+                } else {
+                    // Permission denied, show a Toast
+                    Toast.makeText(this, "Storage access is required to download files automatically", Toast.LENGTH_SHORT).show();
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                        showPermissionSettingsDialog();
+                    }
+                }
+                return;
+            }
+            // Other 'case' lines to check for other permissions this app might request
+        }
+    }
+
+    //Get file directory for downloading in all android versions
     public File getDirectory(){
         File directory;
         if(Build.VERSION.SDK_INT>= 29){
@@ -305,6 +406,7 @@ public class Webview extends AppCompatActivity {
         return directory;
     }
 
+    //progress bar hide/show
     public void setProgressBar(String status){
         runOnUiThread(new Runnable() {
             @Override
@@ -319,6 +421,7 @@ public class Webview extends AppCompatActivity {
         });
     }
 
+    //status and navigation theming
     private void setupSystemBars() {
         Window window = getWindow();
 
@@ -342,6 +445,27 @@ public class Webview extends AppCompatActivity {
             flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
             window.getDecorView().setSystemUiVisibility(flags);
         }
+    }
+
+    private void clearActiveUriState() {
+        List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
+        Log.d("URI Permissions", "Before clearing: " + uriPermissions.size());
+        String treeUri = webPref.getString("treeUri",null);
+        Uri savedUri = treeUri != null ? Uri.parse(treeUri) :null;
+        for (UriPermission permission : uriPermissions) {
+            Log.e("URI Permissions",permission.toString());
+            Log.e("URI Permissions",permission.getUri().toString());
+            if(savedUri != null && savedUri.equals(permission.getUri())){
+                Log.e("URI Permissions",savedUri.toString());
+                continue;
+            }
+            getContentResolver().releasePersistableUriPermission(
+                    permission.getUri(),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            );
+        }
+        List<UriPermission> uriPermissionsAfter = getContentResolver().getPersistedUriPermissions();
+        Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
     }
 
 }

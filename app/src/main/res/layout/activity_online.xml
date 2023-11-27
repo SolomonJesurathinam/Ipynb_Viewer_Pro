@@ -17,7 +17,7 @@
         android:text="Online Conversion Beta"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:fontFamily="@font/roboto_condensed_regular"
+        android:fontFamily="@font/rubik_mono_one"
         android:layout_centerHorizontal="true"
         android:drawableEnd="@drawable/beta"
         android:drawablePadding="8dp" />

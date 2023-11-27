@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
@@ -51,8 +52,7 @@ public class HomePage extends AppCompatActivity {
     RecyclerView recyclerView;
     private ActivityResultLauncher<Intent> manageExternalStorageActivityResultLauncher;
     LinearLayout recyclerLayout;
-
-    ImageView feedback;
+    ImageView feedback, convertedFiles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +66,6 @@ public class HomePage extends AppCompatActivity {
         //Shared Prefs
         homePagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         homePagePref.getString("renderKey","Real");
-        homePagePref.getInt("storageDeny",0);
 
         choosefile = findViewById(R.id.choosefile);
         fileHandling();
@@ -107,6 +106,16 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(),OnlineActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        //converted Files
+        convertedFiles = findViewById(R.id.convertedFiles);
+        convertedFiles.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getApplicationContext(),ConvertedFiles.class);
                 startActivity(intent);
             }
         });
@@ -175,11 +184,9 @@ public class HomePage extends AppCompatActivity {
                 } else {
                     // Permission denied, show a Toast
                     Toast.makeText(this, "Storage access is required to display all jupyter files", Toast.LENGTH_SHORT).show();
-                    SharedPreferences.Editor editor = homePagePref.edit();
-                    editor.putInt("storageDeny",homePagePref.getInt("storageDeny",0)+1);
-                    editor.apply();
-                    editor.commit();
-                    Log.e("TESTING","DENY"+String.valueOf(homePagePref.getInt("storageDeny",0)));
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                        showPermissionSettingsDialog();
+                    }
                 }
                 return;
             }
@@ -207,21 +214,9 @@ public class HomePage extends AppCompatActivity {
     public void displayRecyclerView(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
             retrieveIpynbFiles();
-            if(homePagePref.getInt("storageDeny",0) != 0){
-                SharedPreferences.Editor editor = homePagePref.edit();
-                editor.putInt("storageDeny",0);
-                editor.apply();
-                editor.commit();
-            }
         }
         else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             retrieveIpynbFiles();
-            if(homePagePref.getInt("storageDeny",0) != 0){
-                SharedPreferences.Editor editor = homePagePref.edit();
-                editor.putInt("storageDeny",0);
-                editor.apply();
-                editor.commit();
-            }
         }
     }
 
@@ -268,19 +263,6 @@ public class HomePage extends AppCompatActivity {
                     }else{
                         displayRecyclerView();
                     }
-
-                    if(homePagePref.getInt("storageDeny",0)>2){
-                        if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-                            // Permission denied
-                            if (!ActivityCompat.shouldShowRequestPermissionRationale(HomePage.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                                // Direct the user to app settings
-                                showPermissionSettingsDialog();
-                            } else {
-                                // Show rationale and request permission again
-                                ActivityCompat.requestPermissions(HomePage.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
-                            }
-                        }
-                    }
                 }
 
             }
@@ -292,7 +274,7 @@ public class HomePage extends AppCompatActivity {
     private void showPermissionSettingsDialog() {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Allow Permission Manually")
-                .setMessage("Please allow storage access manually from settings.")
+                .setMessage("Need Storage Permission to display all the jupyter files, please allow manually from settings.")
                 .setPositiveButton("App Settings", (dialogInterface, which) -> {
                     // Intent to open app settings
                     openAppSettings();
