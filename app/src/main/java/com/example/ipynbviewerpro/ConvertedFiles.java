@@ -30,7 +30,10 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,9 +43,12 @@ public class ConvertedFiles extends AppCompatActivity {
 
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 1;
     SharedPreferences convertPagePref;
-
     private RecyclerView recyclerView;
     private PdfFileAdapter adapter;
+    FloatingActionButton searchFloating;
+
+    ActivityResultLauncher<Intent> openDocumentTree;
+    TextView scanMessage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +60,26 @@ public class ConvertedFiles extends AppCompatActivity {
         convertPagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         recyclerView = findViewById(R.id.rvPdfFiles);
+        scanMessage = findViewById(R.id.scanMessage);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        ActivityResultLauncher<Intent> openDocumentTree = registerForActivityResult(
+        activityLauncherAndroid13();
+
+        searchFloating = findViewById(R.id.searchFloating);
+        searchFloating.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //clear state
+                clearActiveUriState();
+                getPermissionAndDisplay();
+            }
+        });
+
+        checkPermissionAndDisplay();
+    }
+
+    public void activityLauncherAndroid13(){
+        openDocumentTree = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
@@ -78,15 +101,15 @@ public class ConvertedFiles extends AppCompatActivity {
                     }
                 }
         );
+    }
 
-        //clear state
-        clearActiveUriState();
-
+    public void getPermissionAndDisplay(){
         if (Build.VERSION.SDK_INT >= 30) {
             if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
                 if (Environment.isExternalStorageManager()) {
                     File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
                     displayRecyclerView(Uri.fromFile(downloadsFolder));
+                    Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
                 }
                 else if(Build.VERSION.SDK_INT >=30 && Build.VERSION.SDK_INT <33){
                     if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
@@ -94,20 +117,17 @@ public class ConvertedFiles extends AppCompatActivity {
                     }else{
                         File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
                         displayRecyclerView(Uri.fromFile(downloadsFolder));
+                        Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
             else if(Build.VERSION.SDK_INT >= 33){
-                Log.e("TESTINGG","test1");
-                Uri existingDirectoryUri = checkForExistingDirectoryAccess();
-                Log.e("TESTINGG","test2");
-                //Log.e("TESTINGG",existingDirectoryUri.toString());
-                if (existingDirectoryUri != null) {
-                    Log.e("TESTINGG",existingDirectoryUri.toString());
-                    displayRecyclerView(existingDirectoryUri);
+                if(convertPagePref.getString("treeUri",null) != null){
+                    showSearchAgainDialog();
                 }else{
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                     openDocumentTree.launch(intent);
+                    Toast.makeText(this,"Select 'Download/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -117,16 +137,74 @@ public class ConvertedFiles extends AppCompatActivity {
             }else{
                 File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
                 displayRecyclerView(Uri.fromFile(downloadsFolder));
+                Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    public void checkPermissionAndDisplay(){
+        clearActiveUriState();
+        if (Build.VERSION.SDK_INT >= 30) {
+            if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
+                if (Environment.isExternalStorageManager()) {
+                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                    displayRecyclerView(Uri.fromFile(downloadsFolder));
+                }
+                else if(Build.VERSION.SDK_INT >=30 && Build.VERSION.SDK_INT <33){
+                    if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                        displayRecyclerView(Uri.fromFile(downloadsFolder));
+                    }
+                }
+            }
+            else if(Build.VERSION.SDK_INT >= 33){
+                Uri existingDirectoryUri = checkForExistingDirectoryAccess();
+                if (existingDirectoryUri != null) {
+                    displayRecyclerView(existingDirectoryUri);
+                }
+            }
+        }
+        else if(Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT <=29){
+            if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                displayRecyclerView(Uri.fromFile(downloadsFolder));
+            }
+        }
+    }
+
+    private void showSearchAgainDialog() {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Select Folder")
+                .setMessage("Do you need to reselect the folder (Downloads/IpynbViewer)")
+                .setPositiveButton("Yes", (dialogInterface, which) -> {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                    openDocumentTree.launch(intent);
+                    Toast.makeText(this,"Select 'Download/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("No", (dialogInterface, which) -> {
+                    dialogInterface.dismiss();
+                    Uri existingDirectoryUri = checkForExistingDirectoryAccess();
+                    if (existingDirectoryUri != null) {
+                        displayRecyclerView(existingDirectoryUri);
+                        Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .create();
+        dialog.setOnShowListener(dialogInterface -> {
+            // Change the positive button color
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+
+            // Change the negative button color
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.black));
+        });
+        dialog.show();
     }
 
     private Uri checkForExistingDirectoryAccess() {
         List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
         for (UriPermission permission : uriPermissions) {
-            if(permission != null){
-                //Log.e("TESTINGG",permission.toString());
-            }
             if (permission.isReadPermission() && permission.isWritePermission()) {
                 return permission.getUri();
             }
@@ -197,6 +275,23 @@ public class ConvertedFiles extends AppCompatActivity {
             }
         });
         recyclerView.setAdapter(adapter);
+
+        //check for size and invisible the text
+        if(pdfFiles.size()>0){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    scanMessage.setVisibility(View.GONE);
+                }
+            });
+        }else if(pdfFiles.size()==0){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                   scanMessage.setText("No Pdf Files found, convert and scan again");
+                }
+            });
+        }
     }
 
 
