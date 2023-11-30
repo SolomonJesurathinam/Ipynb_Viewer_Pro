@@ -1,5 +1,6 @@
 package com.example.ipynbviewerpro;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -30,14 +31,18 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.barteksc.pdfviewer.PDFView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ConvertedFiles extends AppCompatActivity {
 
@@ -49,6 +54,9 @@ public class ConvertedFiles extends AppCompatActivity {
 
     ActivityResultLauncher<Intent> openDocumentTree;
     TextView scanMessage;
+    private PDFView pdfView;
+    private LinearLayout recyclerLayout;
+    private ExecutorService executorService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,6 +84,34 @@ public class ConvertedFiles extends AppCompatActivity {
         });
 
         checkPermissionAndDisplay();
+
+        pdfView = findViewById(R.id.pdfView);
+        recyclerLayout = findViewById(R.id.recyclerLayout);
+        executorService = Executors.newSingleThreadExecutor();
+
+        // Handling back press using OnBackPressedCallback
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled */) {
+            @Override
+            public void handleOnBackPressed() {
+                if (pdfView.getVisibility() == View.VISIBLE) {
+                    pdfView.recycle();
+                    // If PDFView is visible, return to the RecyclerView
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            pdfView.setVisibility(View.GONE);
+                            recyclerLayout.setVisibility(View.VISIBLE);
+                            searchFloating.setVisibility(View.VISIBLE);
+                        }
+                    });
+                } else {
+                    // Otherwise, call the default back action
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     public void activityLauncherAndroid13(){
@@ -271,7 +307,7 @@ public class ConvertedFiles extends AppCompatActivity {
             public void onItemClick(View view, int position) {
                 // Handle the item click here
                 File selectedFile = adapter.getItem(position);
-                openPdfFile(selectedFile);
+                loadPdfInBackground(selectedFile);
             }
         });
         recyclerView.setAdapter(adapter);
@@ -338,6 +374,8 @@ public class ConvertedFiles extends AppCompatActivity {
                     if (file.isFile() && file.getName() != null && file.getName().toLowerCase().endsWith(".pdf")) {
                         // Convert Uri to File, or directly use Uri for your purpose
                         File pdfFile = new File(file.getUri().getPath());
+                        Log.e("TESTINGG",file.getUri().toString());
+                        Log.e("TESTINGG",pdfFile.toString());
                         pdfFileList.add(pdfFile);
                     }
                 }
@@ -358,14 +396,89 @@ public class ConvertedFiles extends AppCompatActivity {
     }
 
 
-    private void openPdfFile(File file) {
-        // Open PDF file with an external app
+    private void openPdfFile(Object pdfSource) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                recyclerLayout.setVisibility(View.GONE);
+                searchFloating.setVisibility(View.GONE);
+                pdfView.setVisibility(View.VISIBLE);
+            }
+        });
+
+        executorService.execute(() -> {
+            runOnUiThread(() -> {
+                if (pdfSource instanceof File) {
+                    // For versions below Android 13, use the File object
+                    pdfView.fromFile((File) pdfSource)
+                            .enableSwipe(true)
+                            .swipeHorizontal(false)
+                            .enableDoubletap(true)
+                            .defaultPage(0)
+                            .load();
+                } else if (pdfSource instanceof Uri) {
+                    // For Android 13 and above, use the Uri directly
+                    pdfView.fromUri((Uri) pdfSource)
+                            .enableSwipe(true)
+                            .swipeHorizontal(false)
+                            .enableDoubletap(true)
+                            .defaultPage(0)
+                            .load();
+                }
+            });
+        });
+
+        /*
         Uri uri = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", file);
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(uri, "application/pdf");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(intent);
+        startActivity(intent);*/
     }
+
+    private void loadPdfInBackground(File file) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                recyclerLayout.setVisibility(View.GONE);
+                searchFloating.setVisibility(View.GONE);
+                pdfView.setVisibility(View.VISIBLE);
+            }
+        });
+
+        executorService.execute(() -> {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 33) {
+                    // Convert File to Uri for Android 13 and above
+                    Uri fileUri = Uri.fromFile(file);
+                    Log.e("TESTINGG",fileUri.toString());
+                    loadPdfFromUri(fileUri);
+                } else {
+                    // For versions below Android 13, load the PDF directly from the File
+                    loadPdfFromFile(file);
+                }
+            });
+        });
+    }
+
+    private void loadPdfFromFile(File file) {
+        pdfView.fromFile(file)
+                .enableSwipe(true)
+                .swipeHorizontal(false)
+                .enableDoubletap(true)
+                .defaultPage(0)
+                .load();
+    }
+
+    private void loadPdfFromUri(Uri uri) {
+        pdfView.fromUri(uri)
+                .enableSwipe(true)
+                .swipeHorizontal(false)
+                .enableDoubletap(true)
+                .defaultPage(0)
+                .load();
+    }
+
 
     private void clearActiveUriState() {
         List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
