@@ -1,11 +1,13 @@
 package com.example.ipynbviewerpro;
 
 import android.content.Context;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.documentfile.provider.DocumentFile;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
@@ -13,14 +15,14 @@ import java.util.List;
 
 public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHolder> {
 
-    private final List<File> pdfFiles;
+    private final List<Object> pdfSources;
     private final LayoutInflater mInflater;
     private ItemClickListener mClickListener;
 
     // data is passed into the constructor
-    PdfFileAdapter(Context context, List<File> data) {
+    PdfFileAdapter(Context context, List<Object> data) {
         this.mInflater = LayoutInflater.from(context);
-        this.pdfFiles = data;
+        this.pdfSources = data;
     }
 
     // inflates the row layout from xml when needed
@@ -33,19 +35,23 @@ public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHold
     // binds the data to the TextView in each row
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        File file = pdfFiles.get(position);
-        holder.myTextView.setText(file.getName());
+        Object source = pdfSources.get(position);
+        if (source instanceof File) {
+            holder.myTextView.setText(((File) source).getName());
+        } else if (source instanceof Uri) {
+            holder.myTextView.setText(DocumentFile.fromSingleUri(holder.myTextView.getContext(), (Uri) source).getName());
+        }
     }
 
     // total number of rows
     @Override
     public int getItemCount() {
-        return pdfFiles.size();
+        return pdfSources.size();
     }
 
     // convenience method for getting data at click position
-    File getItem(int id) {
-        return pdfFiles.get(id);
+    Object getItem(int id) {
+        return pdfSources.get(id);
     }
 
     // allows clicks events to be caught
@@ -74,4 +80,3 @@ public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHold
         }
     }
 }
-

@@ -296,31 +296,31 @@ public class ConvertedFiles extends AppCompatActivity {
     }
 
     public void displayRecyclerView(Uri directoryUri) {
-        // Scan for PDF files using the updated findPdfFiles method
-        List<File> pdfFiles = findPdfFiles(directoryUri);
-        Log.e("TESTINGG", String.valueOf(pdfFiles.size()));
+        // Scan for PDF files or Uris using the updated findPdfFiles method
+        List<Object> pdfSources = findPdfFiles(directoryUri);
+        Log.e("TESTINGG", String.valueOf(pdfSources.size()));
 
         // Set up the adapter
-        adapter = new PdfFileAdapter(this, pdfFiles);
+        adapter = new PdfFileAdapter(this, pdfSources);  // Ensure your adapter can handle both File and Uri objects
         adapter.setClickListener(new PdfFileAdapter.ItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
                 // Handle the item click here
-                File selectedFile = adapter.getItem(position);
-                loadPdfInBackground(selectedFile);
+                Object selectedSource = adapter.getItem(position);
+                loadPdfInBackground(selectedSource);
             }
         });
         recyclerView.setAdapter(adapter);
 
         //check for size and invisible the text
-        if(pdfFiles.size()>0){
+        if(pdfSources.size()>0){
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     scanMessage.setVisibility(View.GONE);
                 }
             });
-        }else if(pdfFiles.size()==0){
+        }else if(pdfSources.size()==0){
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -329,9 +329,6 @@ public class ConvertedFiles extends AppCompatActivity {
             });
         }
     }
-
-
-
 
 
     //Dialog box
@@ -364,36 +361,35 @@ public class ConvertedFiles extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private List<File> findPdfFiles(Uri directoryUri) {
-        List<File> pdfFileList = new ArrayList<>();
+    private List<Object> findPdfFiles(Uri directoryUri) {
+        List<Object> pdfSourceList = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 33) {
-            // Use SAF for Android 10 (API level 29) and above
+            // Use SAF for Android 13 (API level 33) and above
             DocumentFile directory = DocumentFile.fromTreeUri(this, directoryUri);
             if (directory != null && directory.isDirectory()) {
                 for (DocumentFile file : directory.listFiles()) {
                     if (file.isFile() && file.getName() != null && file.getName().toLowerCase().endsWith(".pdf")) {
-                        // Convert Uri to File, or directly use Uri for your purpose
-                        File pdfFile = new File(file.getUri().getPath());
-                        Log.e("TESTINGG",file.getUri().toString());
-                        Log.e("TESTINGG",pdfFile.toString());
-                        pdfFileList.add(pdfFile);
+                        // Add the Uri for Android 13 and above
+                        pdfSourceList.add(file.getUri());
                     }
                 }
             }
         } else {
-            // Traditional file access for versions below Android 10
+            // Traditional file access for versions below Android 13
             File directory = new File(directoryUri.getPath());
             File[] files = directory.listFiles();
             if (files != null) {
                 for (File file : files) {
                     if (file.isFile() && file.getName().toLowerCase().endsWith(".pdf")) {
-                        pdfFileList.add(file);
+                        // Add the File for older versions
+                        pdfSourceList.add(file);
                     }
                 }
             }
         }
-        return pdfFileList;
+        return pdfSourceList;
     }
+
 
 
     private void openPdfFile(Object pdfSource) {
@@ -436,7 +432,7 @@ public class ConvertedFiles extends AppCompatActivity {
         startActivity(intent);*/
     }
 
-    private void loadPdfInBackground(File file) {
+    private void loadPdfInBackground(Object pdfSource) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -448,14 +444,10 @@ public class ConvertedFiles extends AppCompatActivity {
 
         executorService.execute(() -> {
             runOnUiThread(() -> {
-                if (Build.VERSION.SDK_INT >= 33) {
-                    // Convert File to Uri for Android 13 and above
-                    Uri fileUri = Uri.fromFile(file);
-                    Log.e("TESTINGG",fileUri.toString());
-                    loadPdfFromUri(fileUri);
-                } else {
-                    // For versions below Android 13, load the PDF directly from the File
-                    loadPdfFromFile(file);
+                if (pdfSource instanceof File) {
+                    loadPdfFromFile((File) pdfSource);
+                } else if (pdfSource instanceof Uri && Build.VERSION.SDK_INT >= 33) {
+                    loadPdfFromUri((Uri) pdfSource);
                 }
             });
         });

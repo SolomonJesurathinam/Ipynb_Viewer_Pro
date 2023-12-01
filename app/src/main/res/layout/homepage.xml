@@ -84,7 +84,8 @@
             android:text="ONLINE  "
             android:layout_alignParentRight="true"
             android:textColor="@color/black"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            app:rippleColor="#66A65E2E"/>
     </RelativeLayout>
 
     <RelativeLayout
@@ -135,7 +136,8 @@
             android:text="SCAN FILES"
             android:textSize="12sp"
             android:textColor="@color/black"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            app:rippleColor="#66A65E2E"/>
 
 
 

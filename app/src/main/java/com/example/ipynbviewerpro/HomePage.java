@@ -181,6 +181,7 @@ public class HomePage extends AppCompatActivity {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission was granted
                     displayRecyclerView();
+                    Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
                 } else {
                     // Permission denied, show a Toast
                     Toast.makeText(this, "Storage access is required to display all jupyter files", Toast.LENGTH_SHORT).show();
@@ -204,6 +205,8 @@ public class HomePage extends AppCompatActivity {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         if (Environment.isExternalStorageManager()) {
                             displayRecyclerView();
+                            Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
+
                         }
                     }
                 });
@@ -255,6 +258,8 @@ public class HomePage extends AppCompatActivity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     if(!Environment.isExternalStorageManager()){
                         showPrivacycontentfullStorage();
+                    }else{
+                        Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
                     }
                 }
                 else{
@@ -262,6 +267,7 @@ public class HomePage extends AppCompatActivity {
                         ActivityCompat.requestPermissions(HomePage.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
                     }else{
                         displayRecyclerView();
+                        Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
                     }
                 }
 
