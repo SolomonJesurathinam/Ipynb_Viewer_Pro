@@ -83,9 +83,14 @@ public class OnlineActivity extends AppCompatActivity {
                     public void onClick(View v) {
                         String name = userName.getEditText().getText().toString();
                         String feedback = getFeedback.getEditText().getText().toString();
-                        String url = "https://script.google.com/macros/s/AKfycbw3S9VmBv934IT_ZuyKnR8OWuV_MPS6Vu7eJB8U3eExFrvb2S4iLBMiY2TcRbEkGeo9Hw/exec";
-                        String dataJson = "{\"name\":\"" + name + "\",\"feedback\":\"" + feedback + "\"}";
-                        sendFeedback(url,dataJson,dialog);
+                        if(!name.isBlank() && !feedback.isBlank()){
+                            String url = "https://script.google.com/macros/s/AKfycbw3S9VmBv934IT_ZuyKnR8OWuV_MPS6Vu7eJB8U3eExFrvb2S4iLBMiY2TcRbEkGeo9Hw/exec";
+                            String dataJson = "{\"name\":\"" + name + "\",\"feedback\":\"" + feedback + "\"}";
+                            sendFeedback(url,dataJson,dialog);
+                        }else{
+                            Toast.makeText(getApplicationContext(),"Please enter Name and Feedback",Toast.LENGTH_SHORT).show();
+                        }
+
                     }
                 });
 

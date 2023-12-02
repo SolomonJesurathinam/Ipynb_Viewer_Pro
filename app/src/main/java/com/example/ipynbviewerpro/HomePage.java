@@ -12,15 +12,18 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -129,14 +132,20 @@ public class HomePage extends AppCompatActivity {
                     @Override
                     public void onActivityResult(Uri uri) {
                         if(uri != null){
-                            getContentResolver().takePersistableUriPermission(
-                                    uri,
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                            );
-                            Toast.makeText(getApplicationContext(),uri.getPath(),Toast.LENGTH_LONG).show();
-                            Intent intent = new Intent(getApplicationContext(), Webview.class);
-                            intent.putExtra("filePath",uri.toString());
-                            startActivity(intent);
+                            String fileName = getFilename(getApplicationContext(),uri);
+                            if (fileName != null && fileName.endsWith(".ipynb")) {
+                                getContentResolver().takePersistableUriPermission(
+                                        uri,
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                );
+                                //Toast.makeText(getApplicationContext(),uri.getPath(),Toast.LENGTH_LONG).show();
+                                Intent intent = new Intent(getApplicationContext(), Webview.class);
+                                intent.putExtra("filePath",uri.toString());
+                                startActivity(intent);
+                            } else {
+                                Toast.makeText(getApplicationContext(),"Only ipynb files are allowed",Toast.LENGTH_LONG).show();
+                            }
+
                         }
                     }
                 });
@@ -409,4 +418,25 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
+    public String getFilename(Context context, Uri uri){
+        String fileName = null;
+        if(uri.getScheme().equalsIgnoreCase("content")){
+            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex != -1) {
+                        fileName = cursor.getString(nameIndex);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (fileName == null) {
+                fileName = uri.getLastPathSegment();
+            }
+        }else if(uri.getScheme().equalsIgnoreCase("file")){
+            fileName = uri.getLastPathSegment();
+        }
+        return fileName;
+    }
 }
