@@ -217,9 +217,11 @@ public class Webview extends AppCompatActivity {
 
         if (id == R.id.action_download) {
             if(Build.VERSION.SDK_INT<29){
-                if(ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-                    ActivityCompat.requestPermissions(Webview.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
-            }
+                if(ContextCompat.checkSelfPermission(Webview.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+                    ActivityCompat.requestPermissions(Webview.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
+                }else{
+                    downloadSteps();
+                }
             }else {
                 downloadSteps();
             }
