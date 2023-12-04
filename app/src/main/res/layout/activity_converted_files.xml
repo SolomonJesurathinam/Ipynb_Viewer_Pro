@@ -13,7 +13,7 @@
         android:id="@+id/recyclerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10sp"
+        android:layout_marginTop="10dp"
         android:background="@drawable/rounded_corners"
         android:orientation="vertical"
         android:visibility="visible">
@@ -24,7 +24,7 @@
             android:layout_gravity="center"
             android:fontFamily="@font/rubik_mono_one"
             android:text="Converted PDF Files"
-            android:layout_marginTop="5sp"
+            android:layout_marginTop="5dp"
             android:textColor="@color/black"
             android:textSize="15sp" />
 
@@ -32,7 +32,7 @@
             android:id="@+id/rvPdfFiles"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10sp"
+            android:layout_marginTop="10dp"
             android:background="@color/white"
             android:scrollbars="vertical"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
@@ -68,6 +68,5 @@
         android:text="Scan to display all the converted files"
         android:textColor="@color/black"
         android:textStyle="bold" />
-
 
 </RelativeLayout>

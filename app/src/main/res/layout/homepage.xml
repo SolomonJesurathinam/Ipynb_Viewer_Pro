@@ -37,9 +37,6 @@
 
         </RelativeLayout>
 
-
-
-
         <TextView
             android:layout_marginTop="25dp"
             android:layout_width="wrap_content"
@@ -176,8 +173,6 @@
                 android:scrollbars="vertical"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
         </LinearLayout>
-
-
     </LinearLayout>
 
 </ScrollView>
