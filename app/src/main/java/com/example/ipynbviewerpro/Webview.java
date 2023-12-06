@@ -251,6 +251,7 @@ public class Webview extends AppCompatActivity {
                 try{
                     saveAutomatically(fname);
                 }catch(Exception e){
+                    setProgressBar("Gone");
                     Toast.makeText(Webview.this, "Failed to save pdf, opening default Print method", Toast.LENGTH_LONG).show();
                     Log.e("TESTINGG",e.toString());
                     createWebPrintJob(webView, Webview.this, fname);
