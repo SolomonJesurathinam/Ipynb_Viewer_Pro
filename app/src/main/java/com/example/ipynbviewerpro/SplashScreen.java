@@ -34,6 +34,7 @@ public class SplashScreen extends AppCompatActivity {
             Uri fileUri = getIntent().getData();
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 if (fileUri != null) {
+                    Log.e("TESTINGG",fileUri.getScheme().toString());
                     if(hasPersistableUriPermission(fileUri)){
                         getContentResolver().takePersistableUriPermission(
                                 fileUri,

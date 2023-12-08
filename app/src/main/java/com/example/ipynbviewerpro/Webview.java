@@ -283,8 +283,14 @@ public class Webview extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (fileName == null) {
-                fileName = uri.getLastPathSegment();
+            if (fileName == null || fileName.contains("/")) {
+                String path = uri.getPath();
+                if (path != null) {
+                    int cut = path.lastIndexOf('/');
+                    if (cut != -1) {
+                        fileName = path.substring(cut + 1);
+                    }
+                }
             }
         }else if(uri.getScheme().equalsIgnoreCase("file")){
             fileName = uri.getLastPathSegment();
