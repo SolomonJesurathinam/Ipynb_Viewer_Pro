@@ -51,6 +51,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import androidx.activity.OnBackPressedCallback;
@@ -293,9 +295,30 @@ public class Webview extends AppCompatActivity {
                 }
             }
         }else if(uri.getScheme().equalsIgnoreCase("file")){
-            fileName = uri.getLastPathSegment();
+                fileName = uri.getLastPathSegment();
+        }
+        //checking if the url is encoded
+        try{
+            fileName = checkURLEncoded(fileName);
+        }catch(Exception e){
+            e.printStackTrace();
         }
         return fileName;
+    }
+
+    public String checkURLEncoded(String input){
+        boolean isEncoded = input.contains("%");
+        if(isEncoded){
+            try{
+                String decodedFilePath = URLDecoder.decode(input.replaceAll("%25", "%"), StandardCharsets.UTF_8.toString());
+                String[] pathSegments = decodedFilePath.split("/");
+                return pathSegments[pathSegments.length - 1];
+            }catch(UnsupportedEncodingException e){
+                return input;
+            }
+        }else{
+            return input;
+        }
     }
 
     //Save Automatically (Download logic)
