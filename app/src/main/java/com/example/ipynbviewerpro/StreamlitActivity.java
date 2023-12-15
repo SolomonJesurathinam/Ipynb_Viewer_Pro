@@ -152,7 +152,9 @@ public class    StreamlitActivity extends AppCompatActivity {
         window.setStatusBarColor(Color.parseColor("#F5F5F5"));
 
         // Set the navigation bar color
-        window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
+        }
 
         // For light status bar icons (dark icons for better visibility)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
