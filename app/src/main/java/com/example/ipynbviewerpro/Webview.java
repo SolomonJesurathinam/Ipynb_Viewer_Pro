@@ -24,6 +24,8 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
+import android.print.PrintJob;
+import android.print.PrintJobInfo;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
@@ -61,7 +63,7 @@ import androidx.activity.OnBackPressedDispatcher;
 public class Webview extends AppCompatActivity {
 
     WebView webView;
-    SharedPreferences webPref;
+    SharedPreferences webPref;  
     private ProgressBar progressBar;
     Toolbar toolbar;
     private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
@@ -264,11 +266,23 @@ public class Webview extends AppCompatActivity {
 
     //Default Print Job method for saving the pdf
     public void createWebPrintJob(android.webkit.WebView webView, Context context, String filename) {
+        checkPrintJobs();
         PrintManager printManager = (PrintManager) context
                 .getSystemService(Context.PRINT_SERVICE);
         PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(filename);
         printManager.print(filename, printAdapter,
                 new PrintAttributes.Builder().build());
+    }
+
+    //Check print jobs and make them complete
+    public void checkPrintJobs(){
+        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+        List<PrintJob> printJobs = printManager.getPrintJobs();
+        Log.e("TESTINGG",String.valueOf(printJobs.size()));
+        for (PrintJob printJob : printJobs) {
+            Log.e("TESTINGG",printJob.toString());
+            printJob.cancel();
+        }
     }
 
     //File name from uri
