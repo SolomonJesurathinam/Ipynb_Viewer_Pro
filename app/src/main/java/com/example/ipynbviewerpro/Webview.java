@@ -24,8 +24,6 @@ import android.os.Environment;
 import android.os.FileUtils;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
-import android.print.PrintJob;
-import android.print.PrintJobInfo;
 import android.print.PrintManager;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
@@ -58,7 +56,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import androidx.activity.OnBackPressedCallback;
-import androidx.activity.OnBackPressedDispatcher;
 
 public class Webview extends AppCompatActivity {
 
@@ -266,23 +263,11 @@ public class Webview extends AppCompatActivity {
 
     //Default Print Job method for saving the pdf
     public void createWebPrintJob(android.webkit.WebView webView, Context context, String filename) {
-        checkPrintJobs();
         PrintManager printManager = (PrintManager) context
                 .getSystemService(Context.PRINT_SERVICE);
         PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(filename);
         printManager.print(filename, printAdapter,
                 new PrintAttributes.Builder().build());
-    }
-
-    //Check print jobs and make them complete
-    public void checkPrintJobs(){
-        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
-        List<PrintJob> printJobs = printManager.getPrintJobs();
-        Log.e("TESTINGG",String.valueOf(printJobs.size()));
-        for (PrintJob printJob : printJobs) {
-            Log.e("TESTINGG",printJob.toString());
-            printJob.cancel();
-        }
     }
 
     //File name from uri
@@ -459,8 +444,13 @@ public class Webview extends AppCompatActivity {
             public void run() {
                 if(status.equalsIgnoreCase("Visible")){
                     progressBar.setVisibility(View.VISIBLE);
+                    findViewById(R.id.action_download).setEnabled(false);
+                    findViewById(R.id.action_print).setEnabled(false);
+
                 }else if(status.equalsIgnoreCase("Gone")){
                     progressBar.setVisibility(View.GONE);
+                    findViewById(R.id.action_download).setEnabled(true);
+                    findViewById(R.id.action_print).setEnabled(true);
                 }
 
             }
