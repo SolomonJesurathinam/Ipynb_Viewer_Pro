@@ -1,4 +1,4 @@
-package com.example.ipynbviewerpro;
+package com.solomonj.ipynbviewerpro;
 
 public interface PostResponseCallback {
     void onResponse(String response);

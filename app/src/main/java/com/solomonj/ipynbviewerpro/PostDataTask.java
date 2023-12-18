@@ -1,15 +1,8 @@
-package com.example.ipynbviewerpro;
-
-import android.util.Log;
+package com.solomonj.ipynbviewerpro;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class PostDataTask implements Runnable{
     private final String urlStr;

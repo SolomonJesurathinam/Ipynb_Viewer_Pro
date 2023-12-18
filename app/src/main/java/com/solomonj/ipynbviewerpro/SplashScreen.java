@@ -1,4 +1,4 @@
-package com.example.ipynbviewerpro;
+package com.solomonj.ipynbviewerpro;
 
 import androidx.appcompat.app.AppCompatActivity;
 

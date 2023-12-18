@@ -1,4 +1,4 @@
-package com.example.ipynbviewerpro;
+package com.solomonj.ipynbviewerpro;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;

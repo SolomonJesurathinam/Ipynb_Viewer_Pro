@@ -1,4 +1,4 @@
-package com.example.ipynbviewerpro;
+package com.solomonj.ipynbviewerpro;
 import android.content.Context;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;

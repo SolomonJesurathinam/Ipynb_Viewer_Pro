@@ -1,4 +1,4 @@
-package com.example.ipynbviewerpro;
+package com.solomonj.ipynbviewerpro;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;

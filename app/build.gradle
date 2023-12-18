@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.ipynbviewerpro'
+    namespace 'com.solomonj.ipynbviewerpro'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.ipynbviewerpro"
+        applicationId "com.solomonj.ipynbviewerpro"
         minSdk 28
         targetSdk 34
         versionCode 1
