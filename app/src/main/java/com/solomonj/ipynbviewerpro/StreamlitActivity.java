@@ -123,7 +123,7 @@ public class    StreamlitActivity extends AppCompatActivity {
 
                 // Specify the destination directory and file name
                 String directoryPath = "IpynbViewer/" + fileName;
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, directoryPath);
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOCUMENTS, directoryPath);
 
                 DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
                 dm.enqueue(request);

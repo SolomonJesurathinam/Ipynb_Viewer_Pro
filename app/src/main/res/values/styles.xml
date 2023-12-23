@@ -1,2 +1,5 @@
 <resources>
+    <style name="PopupMenuStyle" parent="ThemeOverlay.AppCompat.Light">
+        <item name="android:popupBackground">@color/backgroundfinal</item> <!-- Replace with your desired color -->
+    </style>
 </resources>

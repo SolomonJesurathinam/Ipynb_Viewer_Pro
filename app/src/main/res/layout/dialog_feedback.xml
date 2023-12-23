@@ -17,6 +17,7 @@
         android:textColorHint="@color/black"
         app:boxStrokeColor="@color/widgets"
         app:hintTextColor="@color/widgets"
+        android:textSize="12sp"
         android:fontFamily="@font/roboto_condensed_regular">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -24,6 +25,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/black"
             android:singleLine="true"
+            android:textSize="12sp"
             android:fontFamily="@font/roboto_condensed_regular"/>
 
     </com.google.android.material.textfield.TextInputLayout>
@@ -37,6 +39,7 @@
         android:textColorHint="@color/black"
         app:boxStrokeColor="@color/widgets"
         app:hintTextColor="@color/widgets"
+        android:textSize="12sp"
         android:fontFamily="@font/roboto_condensed_regular">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -44,6 +47,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/black"
             android:singleLine="true"
+            android:textSize="12sp"
             android:fontFamily="@font/roboto_condensed_regular"/>
 
     </com.google.android.material.textfield.TextInputLayout>

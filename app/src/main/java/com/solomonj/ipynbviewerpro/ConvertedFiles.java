@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.UriPermission;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -35,6 +36,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.barteksc.pdfviewer.PDFView;
+import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
+import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
@@ -56,6 +59,8 @@ public class ConvertedFiles extends AppCompatActivity {
     private PDFView pdfView;
     private LinearLayout recyclerLayout;
     private ExecutorService executorService;
+    Object selectedSource;
+    private int currentPage = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,6 +108,7 @@ public class ConvertedFiles extends AppCompatActivity {
                             searchFloating.setVisibility(View.VISIBLE);
                         }
                     });
+                    selectedSource = null;
                 } else {
                     // Otherwise, call the default back action
                     setEnabled(false);
@@ -142,7 +148,7 @@ public class ConvertedFiles extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 30) {
             if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
                 if (Environment.isExternalStorageManager()) {
-                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                     displayRecyclerView(Uri.fromFile(downloadsFolder));
                     Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
                 }
@@ -150,7 +156,7 @@ public class ConvertedFiles extends AppCompatActivity {
                     if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
                         ActivityCompat.requestPermissions(ConvertedFiles.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
                     }else{
-                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                         displayRecyclerView(Uri.fromFile(downloadsFolder));
                         Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
                     }
@@ -162,7 +168,7 @@ public class ConvertedFiles extends AppCompatActivity {
                 }else{
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                     openDocumentTree.launch(intent);
-                    Toast.makeText(this,"Select 'Download/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
+                    Toast.makeText(this,"Select 'Documents/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -170,7 +176,7 @@ public class ConvertedFiles extends AppCompatActivity {
             if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
                 ActivityCompat.requestPermissions(ConvertedFiles.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
             }else{
-                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                 displayRecyclerView(Uri.fromFile(downloadsFolder));
                 Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
             }
@@ -182,12 +188,12 @@ public class ConvertedFiles extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= 30) {
             if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
                 if (Environment.isExternalStorageManager()) {
-                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                     displayRecyclerView(Uri.fromFile(downloadsFolder));
                 }
                 else if(Build.VERSION.SDK_INT >=30 && Build.VERSION.SDK_INT <33){
                     if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                         displayRecyclerView(Uri.fromFile(downloadsFolder));
                     }
                 }
@@ -201,7 +207,7 @@ public class ConvertedFiles extends AppCompatActivity {
         }
         else if(Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT <=29){
             if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                 displayRecyclerView(Uri.fromFile(downloadsFolder));
             }
         }
@@ -210,11 +216,11 @@ public class ConvertedFiles extends AppCompatActivity {
     private void showSearchAgainDialog() {
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Select Folder")
-                .setMessage("Do you need to reselect the folder (Downloads/IpynbViewer)")
+                .setMessage("Do you need to reselect the folder (Documents/IpynbViewer)")
                 .setPositiveButton("Yes", (dialogInterface, which) -> {
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                     openDocumentTree.launch(intent);
-                    Toast.makeText(this,"Select 'Download/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
+                    Toast.makeText(this,"Select 'Documents/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
                 })
                 .setNegativeButton("No", (dialogInterface, which) -> {
                     dialogInterface.dismiss();
@@ -279,7 +285,7 @@ public class ConvertedFiles extends AppCompatActivity {
             case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Permission was granted
-                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "IpynbViewer");
+                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                     displayRecyclerView(Uri.fromFile(downloadsFolder));
                 } else {
                     // Permission denied, show a Toast
@@ -305,8 +311,10 @@ public class ConvertedFiles extends AppCompatActivity {
             @Override
             public void onItemClick(View view, int position) {
                 // Handle the item click here
-                Object selectedSource = adapter.getItem(position);
-                loadPdfInBackground(selectedSource);
+                selectedSource = adapter.getItem(position);
+                if(selectedSource != null){
+                    loadPdfInBackground(selectedSource);
+                }
             }
         });
         recyclerView.setAdapter(adapter);
@@ -390,48 +398,7 @@ public class ConvertedFiles extends AppCompatActivity {
     }
 
 
-
-    private void openPdfFile(Object pdfSource) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                recyclerLayout.setVisibility(View.GONE);
-                searchFloating.setVisibility(View.GONE);
-                pdfView.setVisibility(View.VISIBLE);
-            }
-        });
-
-        executorService.execute(() -> {
-            runOnUiThread(() -> {
-                if (pdfSource instanceof File) {
-                    // For versions below Android 13, use the File object
-                    pdfView.fromFile((File) pdfSource)
-                            .enableSwipe(true)
-                            .swipeHorizontal(false)
-                            .enableDoubletap(true)
-                            .defaultPage(0)
-                            .load();
-                } else if (pdfSource instanceof Uri) {
-                    // For Android 13 and above, use the Uri directly
-                    pdfView.fromUri((Uri) pdfSource)
-                            .enableSwipe(true)
-                            .swipeHorizontal(false)
-                            .enableDoubletap(true)
-                            .defaultPage(0)
-                            .load();
-                }
-            });
-        });
-
-        /*
-        Uri uri = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", file);
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "application/pdf");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(intent);*/
-    }
-
-    private void loadPdfInBackground(Object pdfSource) {
+    public void loadPdfInBackground(Object pdfSource) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -457,7 +424,13 @@ public class ConvertedFiles extends AppCompatActivity {
                 .enableSwipe(true)
                 .swipeHorizontal(false)
                 .enableDoubletap(true)
-                .defaultPage(0)
+                .defaultPage(currentPage)
+                .onRender(new OnRenderListener() {
+                    @Override
+                    public void onInitiallyRendered(int nbPages, float pageWidth, float pageHeight) {
+                        pdfView.fitToWidth(currentPage);
+                    }
+                })
                 .load();
     }
 
@@ -466,8 +439,38 @@ public class ConvertedFiles extends AppCompatActivity {
                 .enableSwipe(true)
                 .swipeHorizontal(false)
                 .enableDoubletap(true)
-                .defaultPage(0)
-                .load();
+                .defaultPage(currentPage)
+                .onRender(new OnRenderListener() {
+                    @Override
+                    public void onInitiallyRendered(int nbPages, float pageWidth, float pageHeight) {
+                        pdfView.fitToWidth(currentPage);
+                    }
+                }).load();
+    }
+
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Save the current page number
+        if (pdfView != null) {
+            currentPage = pdfView.getCurrentPage();
+        }
+
+        if(selectedSource != null){
+            // Reload the PDF to fit the new orientation
+            executorService.execute(() -> {
+                runOnUiThread(() -> {
+                    if (selectedSource instanceof File) {
+                        loadPdfFromFile((File) selectedSource);
+                    } else if (selectedSource instanceof Uri && Build.VERSION.SDK_INT >= 33) {
+                        loadPdfFromUri((Uri) selectedSource);
+                    }
+                });
+            });
+
+        }
     }
 
 

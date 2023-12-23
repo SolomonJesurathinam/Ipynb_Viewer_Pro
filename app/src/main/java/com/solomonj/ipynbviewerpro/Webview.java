@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.UriPermission;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -333,7 +334,7 @@ public class Webview extends AppCompatActivity {
                         ContentValues contentValues = new ContentValues();
                         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fname);
                         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-                        contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + File.separator + "IpynbViewer");
+                        contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + File.separator + "IpynbViewer");
 
                         Uri uri = resolver.insert(MediaStore.Files.getContentUri("external"), contentValues);
                         try {
@@ -352,14 +353,14 @@ public class Webview extends AppCompatActivity {
                             setProgressBar("Gone");
                         }
                         file.delete();
-                        Toast.makeText(Webview.this, "PDF Downloaded at Downloads/IpynbViewer", Toast.LENGTH_LONG).show();
+                        Toast.makeText(Webview.this, "PDF Downloaded at Documents/IpynbViewer", Toast.LENGTH_LONG).show();
                         setProgressBar("Gone");
                     }else{
                         Toast.makeText(Webview.this,"Something happened, Please download again",Toast.LENGTH_SHORT).show();
                         setProgressBar("Gone");
                     }
                 }else{//android 9
-                    Toast.makeText(Webview.this, "PDF Downloaded at Downloads/IpynbViewer", Toast.LENGTH_LONG).show();
+                    Toast.makeText(Webview.this, "PDF Downloaded at Documents/IpynbViewer", Toast.LENGTH_LONG).show();
                     setProgressBar("Gone");
                 }
             }
@@ -430,9 +431,9 @@ public class Webview extends AppCompatActivity {
     public File getDirectory(){
         File directory;
         if(Build.VERSION.SDK_INT>= 29){
-            directory = new File(PathUtils.getExternalAppDownloadPath().concat("/IpynbViewer/"));
+            directory = new File(PathUtils.getExternalAppDocumentsPath().concat("/IpynbViewer/"));
         }else{
-            directory = new File(PathUtils.getExternalDownloadsPath().concat("/IpynbViewer/"));
+            directory = new File(PathUtils.getExternalDocumentsPath().concat("/IpynbViewer/"));
         }
         return directory;
     }
@@ -506,5 +507,18 @@ public class Webview extends AppCompatActivity {
         Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
     }
 
+
+    //Orientation Change configuration to initial scales --> Orientation Save state is handled in Manifest file
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            webView.setInitialScale(100);
+            webView.getSettings().setUseWideViewPort(true);
+        } else {
+            webView.setInitialScale(100);
+            webView.getSettings().setUseWideViewPort(false);
+        }
+    }
 }
 
