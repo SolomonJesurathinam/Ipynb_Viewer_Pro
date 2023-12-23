@@ -108,6 +108,7 @@ public class HomePage extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(getApplicationContext(),OnlineActivity.class);
                 startActivity(intent);
+                overridePendingTransition(R.anim.slide_up, R.anim.stay);
             }
         });
 
@@ -118,6 +119,7 @@ public class HomePage extends AppCompatActivity {
             public void onClick(View view) {
                 Intent intent = new Intent(getApplicationContext(),ConvertedFiles.class);
                 startActivity(intent);
+                overridePendingTransition(R.anim.slide_up, R.anim.stay);
             }
         });
     }
@@ -140,6 +142,7 @@ public class HomePage extends AppCompatActivity {
                                 Intent intent = new Intent(getApplicationContext(), Webview.class);
                                 intent.putExtra("filePath",uri.toString());
                                 startActivity(intent);
+                                overridePendingTransition(R.anim.slide_up, R.anim.stay);
                             } else {
                                 Toast.makeText(getApplicationContext(),"Only ipynb files are allowed",Toast.LENGTH_LONG).show();
                             }
@@ -243,6 +246,7 @@ public class HomePage extends AppCompatActivity {
                 Intent intent = new Intent(getApplicationContext(), Webview.class);
                 intent.putExtra("filePath",uri.toString());
                 startActivity(intent);
+                overridePendingTransition(R.anim.slide_up, R.anim.stay);
             }
         });
         recyclerView.setAdapter(adapter);

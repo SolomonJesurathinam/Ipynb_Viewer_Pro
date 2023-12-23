@@ -92,17 +92,16 @@ public class Webview extends AppCompatActivity {
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
             @Override
             public void handleOnBackPressed() {
-                clearActiveUriState();
-                // If you want to delegate the back press event to the system after your handling,
-                // you can call:
-                // setEnabled(false);
-                // requireActivity().onBackPressed();
-
-                // Or, if you just want to finish the current activity, you can use:
-                finish();
+                closeActivityWithTransition();
             }
         };
     }
+
+    private void closeActivityWithTransition() {
+        clearActiveUriState();
+        finish();
+    }
+
 
     //extract data
     public void extractDataAndDisplay(){

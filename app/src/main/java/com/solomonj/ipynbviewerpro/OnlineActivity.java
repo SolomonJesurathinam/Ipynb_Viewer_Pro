@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +29,7 @@ public class OnlineActivity extends AppCompatActivity {
 
     TextView txtViewdown, txtPrivacy, txtTempStorage, txtBeta;
     Button btnTryItNow, btnSendFeedback;
+    ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +77,8 @@ public class OnlineActivity extends AppCompatActivity {
                 TextInputLayout userName = dialog.findViewById(R.id.userName);
                 TextInputLayout getFeedback = dialog.findViewById(R.id.getFeedback);
                 Button btnGetFeedback = dialog.findViewById(R.id.btnGetFeedback);
+                progressBar = dialog.findViewById(R.id.progressBar);
+
                 btnGetFeedback.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -84,6 +88,7 @@ public class OnlineActivity extends AppCompatActivity {
                             String url = "https://script.google.com/macros/s/AKfycbw3S9VmBv934IT_ZuyKnR8OWuV_MPS6Vu7eJB8U3eExFrvb2S4iLBMiY2TcRbEkGeo9Hw/exec";
                             String dataJson = "{\"name\":\"" + name + "\",\"feedback\":\"" + feedback + "\"}";
                             sendFeedback(url,dataJson,dialog);
+
                         }else{
                             Toast.makeText(getApplicationContext(),"Please enter Name and Feedback",Toast.LENGTH_SHORT).show();
                         }
@@ -103,12 +108,15 @@ public class OnlineActivity extends AppCompatActivity {
     }
 
     private void sendFeedback(String url, String dataJson, AlertDialog dialog) {
+
+        runOnUiThread(() -> progressBar.setVisibility(View.VISIBLE));
         PostDataTask task = new PostDataTask(url, dataJson, new PostResponseCallback() {
             @Override
             public void onResponse(String response) {
                 runOnUiThread(() -> {
                     Toast.makeText(getApplicationContext(), "Feedback sent successfully", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
+                    progressBar.setVisibility(View.GONE);
                 });
             }
 
@@ -116,6 +124,7 @@ public class OnlineActivity extends AppCompatActivity {
             public void onError(Exception e) {
                 runOnUiThread(() -> {
                     Toast.makeText(getApplicationContext(), "Failed to send feedback, try again", Toast.LENGTH_SHORT).show();
+                    progressBar.setVisibility(View.GONE);
                 });
             }
         });

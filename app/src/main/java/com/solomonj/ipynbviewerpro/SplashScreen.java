@@ -21,6 +21,7 @@ public class SplashScreen extends AppCompatActivity {
 
     private static final int SPLASH_SCREEN_TIME_OUT = 2000;
     private static final int SPLASH_DISPLAY_LENGTH = 1500;
+    private Handler handler = new Handler(Looper.getMainLooper());
 
 
     @Override
@@ -32,26 +33,27 @@ public class SplashScreen extends AppCompatActivity {
 
         if (getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW)) {
             Uri fileUri = getIntent().getData();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            handler.postDelayed(() -> {
                 if (fileUri != null) {
-                    Log.e("TESTINGG",fileUri.getScheme().toString());
-                    if(hasPersistableUriPermission(fileUri)){
-                        getContentResolver().takePersistableUriPermission(
-                                fileUri,
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                        );
+                    if (!isFinishing()) {
+                        Log.e("TESTINGG",fileUri.getScheme().toString());
+                        if(hasPersistableUriPermission(fileUri)){
+                            getContentResolver().takePersistableUriPermission(
+                                    fileUri,
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                            );
+                        }
+                        // Start WebActivity and pass the file URI
+                        Intent webIntent = new Intent(this, Webview.class);
+                        webIntent.putExtra("filePath", fileUri.toString());
+                        startActivity(webIntent);
+                        finish(); // Close the SplashActivity
                     }
-                    // Start WebActivity and pass the file URI
-                    Intent webIntent = new Intent(this, Webview.class);
-                    webIntent.putExtra("filePath", fileUri.toString());
-                    startActivity(webIntent);
-                    finish(); // Close the SplashActivity
                 }
             }, SPLASH_DISPLAY_LENGTH);
         }else{
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
+            handler.postDelayed(() -> {
+                if (!isFinishing()) { // Add this check
                     Intent i = new Intent(getApplicationContext(), HomePage.class);
                     startActivity(i);
                     finish();
@@ -95,5 +97,11 @@ public class SplashScreen extends AppCompatActivity {
             flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
             window.getDecorView().setSystemUiVisibility(flags);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null); // This will cancel the scheduled Runnable
     }
 }
