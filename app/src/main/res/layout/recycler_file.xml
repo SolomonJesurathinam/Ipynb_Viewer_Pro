@@ -9,7 +9,8 @@
         android:id="@+id/pdf_icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:src="@drawable/pdf" />
+        android:src="@drawable/pdf"
+        android:paddingRight="8dp"/>
 
     <TextView
         android:id="@+id/tvPdfFileName"
@@ -18,7 +19,6 @@
         android:layout_weight="1"
         android:fontFamily="@font/roboto_condensed_regular"
         android:textColor="@color/black"
-        android:drawablePadding="8dp"
         android:gravity="center_vertical" />
 
     <ImageView

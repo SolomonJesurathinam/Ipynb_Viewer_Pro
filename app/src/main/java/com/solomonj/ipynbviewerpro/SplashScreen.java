@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
 import java.util.List;
@@ -28,8 +29,6 @@ public class SplashScreen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
-
-        setupSystemBars();
 
         if (getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW)) {
             Uri fileUri = getIntent().getData();
@@ -70,33 +69,6 @@ public class SplashScreen extends AppCompatActivity {
             }
         }
         return false;
-    }
-
-    private void setupSystemBars() {
-        Window window = getWindow();
-
-        // Set the status bar color
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#F5F5F5"));
-
-        // Set the navigation bar color
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
-            window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
-        }
-
-        // For light status bar icons (dark icons for better visibility)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int flags = window.getDecorView().getSystemUiVisibility();
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            window.getDecorView().setSystemUiVisibility(flags);
-        }
-
-        // For light navigation bar icons (available from API 29)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            int flags = window.getDecorView().getSystemUiVisibility();
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            window.getDecorView().setSystemUiVisibility(flags);
-        }
     }
 
     @Override

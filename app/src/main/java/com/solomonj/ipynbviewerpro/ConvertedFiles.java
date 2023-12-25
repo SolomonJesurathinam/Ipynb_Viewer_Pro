@@ -29,6 +29,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -66,8 +67,6 @@ public class ConvertedFiles extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_converted_files);
-
-        setupSystemBars();
 
         convertPagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
@@ -112,7 +111,7 @@ public class ConvertedFiles extends AppCompatActivity {
                 } else {
                     // Otherwise, call the default back action
                     setEnabled(false);
-                    onBackPressed();
+                    finish(); //change made
                 }
             }
         };
@@ -251,31 +250,6 @@ public class ConvertedFiles extends AppCompatActivity {
             }
         }
         return null;
-    }
-
-    private void setupSystemBars() {
-        Window window = getWindow();
-
-        // Set the status bar color
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.setStatusBarColor(Color.parseColor("#F5F5F5"));
-
-        // Set the navigation bar color
-        window.setNavigationBarColor(Color.parseColor("#F5F5F5"));
-
-        // For light status bar icons (dark icons for better visibility)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            int flags = window.getDecorView().getSystemUiVisibility();
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            window.getDecorView().setSystemUiVisibility(flags);
-        }
-
-        // For light navigation bar icons (available from API 29)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            int flags = window.getDecorView().getSystemUiVisibility();
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            window.getDecorView().setSystemUiVisibility(flags);
-        }
     }
 
     @Override
@@ -427,7 +401,7 @@ public class ConvertedFiles extends AppCompatActivity {
                 .defaultPage(currentPage)
                 .onRender(new OnRenderListener() {
                     @Override
-                    public void onInitiallyRendered(int nbPages, float pageWidth, float pageHeight) {
+                    public void onInitiallyRendered(int nbPages) {
                         pdfView.fitToWidth(currentPage);
                     }
                 })
@@ -442,10 +416,11 @@ public class ConvertedFiles extends AppCompatActivity {
                 .defaultPage(currentPage)
                 .onRender(new OnRenderListener() {
                     @Override
-                    public void onInitiallyRendered(int nbPages, float pageWidth, float pageHeight) {
+                    public void onInitiallyRendered(int nbPages) {
                         pdfView.fitToWidth(currentPage);
                     }
-                }).load();
+                })
+                .load();
     }
 
 
