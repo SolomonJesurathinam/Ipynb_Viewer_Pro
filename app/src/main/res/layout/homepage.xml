@@ -96,7 +96,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp">
-
             <RadioGroup
                 android:id="@+id/radioRender"
                 android:layout_width="wrap_content"
@@ -104,11 +103,20 @@
                 android:orientation="horizontal"
                 android:layout_alignParentLeft="true">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Render:"
+                    android:textStyle="bold"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/roboto_condensed_regular"
+                    android:textColor="@color/black"/>
+
                 <RadioButton
                     android:id="@+id/radioReal"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Realistic"
+                    android:text="Core"
                     android:layout_marginRight="5dp"
                     android:textStyle="bold"
                     android:textSize="12sp"
@@ -120,7 +128,7 @@
                     android:id="@+id/radioBasic"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Basic "
+                    android:text="Lite"
                     android:textStyle="bold"
                     android:textSize="12sp"
                     app:buttonTint="@color/widgets"
@@ -154,21 +162,34 @@
             android:orientation="vertical"
             android:visibility="invisible">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:fontFamily="@font/rubik_mono_one"
-                android:text="Local Notebooks"
-                android:layout_marginTop="5dp"
-                android:textColor="@color/black"
-                android:textSize="15sp" />
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/homeTextLocal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/rubik_mono_one"
+                    android:text="Local Notebooks"
+                    android:textColor="@color/black"
+                    android:textSize="15sp" />
+
+                <androidx.appcompat.widget.SearchView
+                    android:id="@+id/searchIpynb"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewFiles"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
                 android:background="@color/white"
                 android:scrollbars="vertical"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />

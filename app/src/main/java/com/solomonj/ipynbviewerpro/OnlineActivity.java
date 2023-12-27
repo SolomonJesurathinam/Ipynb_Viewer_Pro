@@ -2,27 +2,19 @@ package com.solomonj.ipynbviewerpro;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.android.material.textfield.TextInputLayout;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,31 +29,21 @@ public class OnlineActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_online);
 
+        //Locators
         txtViewdown = findViewById(R.id.txtViewdown);
         txtPrivacy = findViewById(R.id.txtPrivacy);
         txtTempStorage = findViewById(R.id.txtTempStorage);
         txtBeta = findViewById(R.id.txtBeta);
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                txtViewdown.setText(partialTextBold(" Easily view the converted file and download the PDF","* View & Download:"));
-                txtPrivacy.setText(partialTextBold(" Your uploaded files are automatically deleted after conversion. We do not store any files, ensuring your data remains private.","* Privacy First: "));
-                txtTempStorage.setText(partialTextBold(" The conversion runs in a container without persistent storage, meaning nothing is kept after your session ends.","* Temporary Storage:"));
-                txtBeta.setText(partialTextBold(" As this is a beta feature, you might encounter some hiccups along the way.","* Beta Experience: "));
-            }
-        });
-
         btnTryItNow = findViewById(R.id.btnTryItNow);
-        btnTryItNow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), StreamlitActivity.class);
-                startActivity(intent);
-            }
-        });
-
         btnSendFeedback = findViewById(R.id.btnSendFeedback);
+
+        //Functions
+        displayText();
+        tryItNowLogic();
+        sendFeedbackLogic();
+    }
+
+    public void sendFeedbackLogic(){
         btnSendFeedback.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -99,6 +81,27 @@ public class OnlineActivity extends AppCompatActivity {
         });
     }
 
+    public void tryItNowLogic(){
+        btnTryItNow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), StreamlitActivity.class);
+                startActivity(intent);
+            }
+        });
+    }
+
+    public void displayText(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                txtViewdown.setText(partialTextBold(" Easily view the converted file and download the PDF","* View & Download:"));
+                txtPrivacy.setText(partialTextBold(" Your uploaded files are automatically deleted after conversion. We do not store any files, ensuring your data remains private.","* Privacy First: "));
+                txtTempStorage.setText(partialTextBold(" The conversion runs in a container without persistent storage, meaning nothing is kept after your session ends.","* Temporary Storage:"));
+                txtBeta.setText(partialTextBold(" As this is a beta feature, you might encounter some hiccups along the way.","* Beta Experience: "));
+            }
+        });
+    }
 
     public SpannableString partialTextBold(String normalText, String boldText){
         SpannableString styledText = new SpannableString(boldText + normalText);

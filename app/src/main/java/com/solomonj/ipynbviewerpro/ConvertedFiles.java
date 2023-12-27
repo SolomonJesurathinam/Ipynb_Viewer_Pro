@@ -6,13 +6,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
@@ -20,7 +20,6 @@ import android.content.SharedPreferences;
 import android.content.UriPermission;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,19 +27,14 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.github.barteksc.pdfviewer.PDFView;
-import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
 import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,68 +48,44 @@ public class ConvertedFiles extends AppCompatActivity {
     private RecyclerView recyclerView;
     private PdfFileAdapter adapter;
     FloatingActionButton searchFloating;
-
     ActivityResultLauncher<Intent> openDocumentTree;
-    TextView scanMessage;
+    TextView scanMessage,convertText;
     private PDFView pdfView;
     private LinearLayout recyclerLayout;
     private ExecutorService executorService;
     Object selectedSource;
     private int currentPage = 0;
+    SearchView searchPdf;
+    View closeBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_converted_files);
 
+        //Shared Pref
         convertPagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
+        //Find the widgets
         recyclerView = findViewById(R.id.rvPdfFiles);
         scanMessage = findViewById(R.id.scanMessage);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        activityLauncherAndroid13();
-
         searchFloating = findViewById(R.id.searchFloating);
-        searchFloating.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //clear state
-                clearActiveUriState();
-                getPermissionAndDisplay();
-            }
-        });
-
-        checkPermissionAndDisplay();
-
         pdfView = findViewById(R.id.pdfView);
         recyclerLayout = findViewById(R.id.recyclerLayout);
-        executorService = Executors.newSingleThreadExecutor();
+        searchPdf = findViewById(R.id.searchView);
+        closeBtn = searchPdf.findViewById(androidx.appcompat.R.id.search_close_btn);
+        convertText = findViewById(R.id.convertText);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Handling back press using OnBackPressedCallback
-        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled */) {
-            @Override
-            public void handleOnBackPressed() {
-                if (pdfView.getVisibility() == View.VISIBLE) {
-                    pdfView.recycle();
-                    // If PDFView is visible, return to the RecyclerView
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            pdfView.setVisibility(View.GONE);
-                            recyclerLayout.setVisibility(View.VISIBLE);
-                            searchFloating.setVisibility(View.VISIBLE);
-                        }
-                    });
-                    selectedSource = null;
-                } else {
-                    // Otherwise, call the default back action
-                    setEnabled(false);
-                    finish(); //change made
-                }
-            }
-        };
-        getOnBackPressedDispatcher().addCallback(this, callback);
+        //Methods to perform actions
+        executorService = Executors.newSingleThreadExecutor();
+        activityLauncherAndroid13();
+        floatingButtonLogic();
+        checkPermissionAndDisplay();
+        searchAndFilterfiles();
+
+        // Back Pressed Logic
+        backPressedLogic();
     }
 
     public void activityLauncherAndroid13(){
@@ -141,6 +111,45 @@ public class ConvertedFiles extends AppCompatActivity {
                     }
                 }
         );
+    }
+
+    public void floatingButtonLogic(){
+        searchFloating.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //clear state
+                clearActiveUriState();
+                getPermissionAndDisplay();
+            }
+        });
+    }
+
+    public void backPressedLogic(){
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled */) {
+            @Override
+            public void handleOnBackPressed() {
+                if (pdfView.getVisibility() == View.VISIBLE) {
+                    pdfView.recycle();
+                    // If PDFView is visible, return to the RecyclerView
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            pdfView.setVisibility(View.GONE);
+                            recyclerLayout.setVisibility(View.VISIBLE);
+                            searchFloating.setVisibility(View.VISIBLE);
+                        }
+                    });
+                    selectedSource = null;
+                }
+                else {
+                    // Otherwise, call the default back action
+                    setEnabled(false);
+                    finish(); //change made
+                }
+
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     public void getPermissionAndDisplay(){
@@ -299,6 +308,7 @@ public class ConvertedFiles extends AppCompatActivity {
                 @Override
                 public void run() {
                     scanMessage.setVisibility(View.GONE);
+                    searchPdf.setVisibility(View.VISIBLE);
                 }
             });
         }else if(pdfSources.size()==0){
@@ -310,7 +320,6 @@ public class ConvertedFiles extends AppCompatActivity {
             });
         }
     }
-
 
     //Dialog box
     private void showPermissionSettingsDialog() {
@@ -371,7 +380,6 @@ public class ConvertedFiles extends AppCompatActivity {
         return pdfSourceList;
     }
 
-
     public void loadPdfInBackground(Object pdfSource) {
         runOnUiThread(new Runnable() {
             @Override
@@ -423,7 +431,6 @@ public class ConvertedFiles extends AppCompatActivity {
                 .load();
     }
 
-
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -448,7 +455,6 @@ public class ConvertedFiles extends AppCompatActivity {
         }
     }
 
-
     private void clearActiveUriState() {
         List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "Before clearing: " + uriPermissions.size());
@@ -469,4 +475,67 @@ public class ConvertedFiles extends AppCompatActivity {
         List<UriPermission> uriPermissionsAfter = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
     }
+
+    public void searchAndFilterfiles(){
+        //filter adapter
+        searchPdf.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                adapter.filter(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                adapter.filter(newText);
+                return true;
+            }
+        });
+
+        //display changes
+        searchPdf.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            searchPdf.setLayoutParams(new LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                            convertText.setVisibility(View.GONE);
+                        }
+                    });
+                }
+            }
+        });
+
+        //close display changes
+        searchPdf.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        searchPdf.setLayoutParams(new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT));
+                        convertText.setVisibility(View.VISIBLE);
+                    }
+                });
+                return false;
+            }
+        });
+
+        if(closeBtn != null){
+            closeBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    searchPdf.setQuery("", false);
+                    searchPdf.setIconified(true);
+                }
+            });
+        }
+    }
+
 }

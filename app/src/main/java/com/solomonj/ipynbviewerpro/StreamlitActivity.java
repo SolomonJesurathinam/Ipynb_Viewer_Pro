@@ -6,15 +6,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.Intent;
-import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
@@ -39,15 +34,14 @@ public class    StreamlitActivity extends AppCompatActivity {
         String url = "https://nbtopdf.streamlit.app/";
 
         progressBar = findViewById(R.id.progressBar);
-        progresssBarDisplay("visible");
-
         webView = (WebView) findViewById(R.id.webview);
+
+        progresssBarDisplay("visible");
         webViewSettings();
         activityLauncherCode();
         fileSelection();
         download();
         webView.loadUrl(url);
-
     }
 
     public void webViewSettings(){

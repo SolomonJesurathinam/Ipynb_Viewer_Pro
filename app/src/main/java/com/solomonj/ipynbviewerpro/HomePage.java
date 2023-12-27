@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
@@ -16,7 +17,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -29,9 +29,6 @@ import android.text.Spanned;
 import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -50,43 +47,56 @@ public class HomePage extends AppCompatActivity {
     SharedPreferences homePagePref;
     RadioGroup radioRender;
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 1;
-    private static final int REQUEST_CODE_MANAGE_STORAGE = 1;
     RecyclerView recyclerView;
     private ActivityResultLauncher<Intent> manageExternalStorageActivityResultLauncher;
     LinearLayout recyclerLayout;
     ImageView feedback, convertedFiles;
+    SearchView searchIpynb;
+    private FileAdapter adapter;
+    View closeButton;
+    TextView homeTextLocal;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
 
-        recyclerLayout = findViewById(R.id.recyclerLayout);
-
-        //Shared Prefs
+        //Shared Preference
         homePagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         homePagePref.getString("renderKey","Real");
 
+        //Locators
+        recyclerLayout = findViewById(R.id.recyclerLayout);
         choosefile = findViewById(R.id.choosefile);
-        fileHandling();
-
         radioRender = findViewById(R.id.radioRender);
-        radiobuttonLogic();
-
-        //Android 13
-        storagePermissionandroid11();
-
-        //Storage access
         retrieveAll = findViewById(R.id.retrieveAll);
-        scanFilesLogic();
-
-        //displaying all the files
         recyclerView = findViewById(R.id.recyclerViewFiles);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        displayRecyclerView();
-
-        //testing
         feedback = findViewById(R.id.feedback);
+        convertOnline = findViewById(R.id.convertOnline);
+        convertedFiles = findViewById(R.id.convertedFiles);
+        searchIpynb = findViewById(R.id.searchIpynb);
+        closeButton = searchIpynb.findViewById(androidx.appcompat.R.id.search_close_btn);
+        homeTextLocal = findViewById(R.id.homeTextLocal);
+
+
+        //Functions
+        fileHandling();
+        radiobuttonLogic();
+        //Android 13
+        storagePermissionandroid11();
+        //Storage access
+        scanFilesLogic();
+        //displaying all the files
+        displayRecyclerView();
+        feedbackLogic();
+        convertOnlinebutton();
+        convertedFilesButton();
+        searchIpynbfilesLogic();
+
+    }
+
+    public void feedbackLogic(){
         feedback.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -99,24 +109,24 @@ public class HomePage extends AppCompatActivity {
                 }
             }
         });
+    }
 
-        //online features
-        convertOnline = findViewById(R.id.convertOnline);
+    public void convertOnlinebutton(){
         convertOnline.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(),OnlineActivity.class);
-                startActivity(intent);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, R.anim.slide_up, R.anim.stay);
-                } else {
-                    overridePendingTransition(R.anim.slide_up, R.anim.stay);
-                }
+        @Override
+        public void onClick(View v) {
+            Intent intent = new Intent(getApplicationContext(),OnlineActivity.class);
+            startActivity(intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, R.anim.slide_up, R.anim.stay);
+            } else {
+                overridePendingTransition(R.anim.slide_up, R.anim.stay);
             }
-        });
+        }
+    });
+    }
 
-        //converted Files
-        convertedFiles = findViewById(R.id.convertedFiles);
+    public void convertedFilesButton(){
         convertedFiles.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -130,7 +140,6 @@ public class HomePage extends AppCompatActivity {
             }
         });
     }
-
 
     //get file and share to webactivity
     public void fileHandling(){
@@ -192,7 +201,6 @@ public class HomePage extends AppCompatActivity {
         });
     }
 
-
     //handling storage permission result android <11
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -216,7 +224,6 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-
     //handling storage permission result Android>11
     public void storagePermissionandroid11(){
         manageExternalStorageActivityResultLauncher = registerForActivityResult(
@@ -233,7 +240,6 @@ public class HomePage extends AppCompatActivity {
                 });
     }
 
-
     //displaying recycler view
     public void displayRecyclerView(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
@@ -249,7 +255,7 @@ public class HomePage extends AppCompatActivity {
     public void retrieveIpynbFiles(){
         // You have the permission, start file scan
         ArrayList<File> ipynbFiles = findIpynbFiles(Environment.getExternalStorageDirectory());
-        FileAdapter adapter = new FileAdapter(ipynbFiles, new FileAdapter.OnItemClickListener() {
+        adapter = new FileAdapter(ipynbFiles, new FileAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(File file) {
                 String javaURI = file.toURI().toString();
@@ -273,6 +279,14 @@ public class HomePage extends AppCompatActivity {
                 //retrieveAll.setVisibility(View.INVISIBLE);
             }
         });
+        if(ipynbFiles.size() >0){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    searchIpynb.setVisibility(View.VISIBLE);
+                }
+            });
+        }
     }
 
 
@@ -430,5 +444,65 @@ public class HomePage extends AppCompatActivity {
             fileName = uri.getLastPathSegment();
         }
         return fileName;
+    }
+
+    public void searchIpynbfilesLogic(){
+        searchIpynb.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                adapter.filter(newText);
+                return false;
+            }
+        });
+
+        //focus
+        searchIpynb.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            searchIpynb.setLayoutParams(new LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT));
+                            homeTextLocal.setVisibility(View.GONE);
+                        }
+                    });
+                }
+            }
+        });
+
+        if(closeButton != null){
+            closeButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    searchIpynb.setQuery("", false);
+                    searchIpynb.setIconified(true);
+                }
+            });
+        }
+
+        //onclose
+        searchIpynb.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        searchIpynb.setLayoutParams(new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT));
+                        homeTextLocal.setVisibility(View.VISIBLE);
+                    }
+                });
+                return false;
+            }
+        });
     }
 }

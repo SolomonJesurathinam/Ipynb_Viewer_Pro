@@ -3,11 +3,15 @@ package com.solomonj.ipynbviewerpro;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
@@ -19,18 +23,26 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHolder> {
+public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHolder> implements Filterable {
 
     private final List<Object> pdfSources;
+    private List<Object> pdfSourcesFiltered; // Filtered data
     private final LayoutInflater mInflater;
     private ItemClickListener mClickListener;
+    private final Executor backgroundExecutor = Executors.newSingleThreadExecutor();
+    private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
+
 
     // data is passed into the constructor
     PdfFileAdapter(Context context, List<Object> data) {
         this.mInflater = LayoutInflater.from(context);
         this.pdfSources = data;
+        this.pdfSourcesFiltered = new ArrayList<>(data);
     }
 
     // inflates the row layout from xml when needed
@@ -43,7 +55,7 @@ public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHold
     // binds the data to the TextView in each row
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        Object source = pdfSources.get(position);
+        Object source = pdfSourcesFiltered.get(position);
         if (source instanceof File) {
             holder.myTextView.setText(((File) source).getName());
         } else if (source instanceof Uri) {
@@ -54,12 +66,12 @@ public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHold
     // total number of rows
     @Override
     public int getItemCount() {
-        return pdfSources.size();
+        return pdfSourcesFiltered.size();
     }
 
     // convenience method for getting data at click position
     Object getItem(int id) {
-        return pdfSources.get(id);
+        return pdfSourcesFiltered.get(id);
     }
 
     // allows clicks events to be caught
@@ -70,6 +82,50 @@ public class PdfFileAdapter extends RecyclerView.Adapter<PdfFileAdapter.ViewHold
     // parent activity will implement this method to respond to click events
     public interface ItemClickListener {
         void onItemClick(View view, int position);
+    }
+
+    //getFilter
+    @Override
+    public Filter getFilter() {
+        return new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+                // Perform filtering in the background
+                return null; // We don't use this result
+            }
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                // Results are published via the asynchronous task
+            }
+        };
+    }
+
+    public void filter(final CharSequence constraint) {
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                List<Object> filteredList = new ArrayList<>();
+                String filterPattern = (constraint == null || constraint.length() == 0) ? "" : constraint.toString().toLowerCase().trim();
+
+                for (Object item : pdfSources) {
+                    // Simplified filtering logic
+                    String itemName = (item instanceof File) ? ((File) item).getName() : DocumentFile.fromSingleUri(mInflater.getContext(), (Uri) item).getName();
+                    if (itemName != null && itemName.toLowerCase().contains(filterPattern)) {
+                        filteredList.add(item);
+                    }
+                }
+
+                mainThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        pdfSourcesFiltered.clear();
+                        pdfSourcesFiltered.addAll(filteredList);
+                        notifyDataSetChanged();
+                    }
+                });
+            }
+        });
     }
 
     // stores and recycles views as they are scrolled off screen

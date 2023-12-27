@@ -3,6 +3,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filterable;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -12,11 +13,13 @@ import java.util.ArrayList;
 
 public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
     private ArrayList<File> mFiles;
+    private ArrayList<File> mFilesFiltered;
     private OnItemClickListener mListener;
 
     public FileAdapter(ArrayList<File> files, OnItemClickListener listener) {
         mFiles = files;
         mListener = listener;
+        mFilesFiltered = new ArrayList<>(files); // Initialize with all files
     }
 
     public interface OnItemClickListener {
@@ -32,8 +35,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        Log.e("TESTING",mFiles.get(position).getName());
-        File file = mFiles.get(position);
+        Log.e("TESTING",mFilesFiltered.get(position).getName());
+        File file = mFilesFiltered.get(position);
         holder.itemView.setTag(file);
         holder.fileName.setText(file.getName());
         Log.e("TESTING", file.getName());
@@ -41,8 +44,24 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return mFiles.size();
+        return mFilesFiltered.size();
     }
+
+    public void filter(String text) {
+        mFilesFiltered.clear();
+        if (text.isEmpty()) {
+            mFilesFiltered.addAll(mFiles);
+        } else {
+            text = text.toLowerCase();
+            for (File file : mFiles) {
+                if (file.getName().toLowerCase().contains(text)) {
+                    mFilesFiltered.add(file);
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
+
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView fileName;

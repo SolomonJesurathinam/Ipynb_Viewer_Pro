@@ -1,20 +1,13 @@
 package com.solomonj.ipynbviewerpro;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.content.UriPermission;
-import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 
 import java.util.List;
 
@@ -30,6 +23,10 @@ public class SplashScreen extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
 
+        splashScreenLogic();
+    }
+
+    public void splashScreenLogic(){
         if (getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW)) {
             Uri fileUri = getIntent().getData();
             handler.postDelayed(() -> {

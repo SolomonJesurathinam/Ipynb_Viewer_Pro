@@ -17,7 +17,6 @@ import android.content.UriPermission;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,9 +32,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsetsController;
-import android.view.WindowManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -73,20 +69,34 @@ public class Webview extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_webview);
 
-        //Toolbar
+        //Shared Preferences
+        webPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
+        //Locators
         toolbar = (Toolbar) findViewById(R.id.toolbar);
+        progressBar = findViewById(R.id.progressBar);
+        webView = (WebView) findViewById(R.id.webView);
+
+        //Toolbar function
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        //webpref
-        webPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-        //progress bar and webview
-        progressBar = findViewById(R.id.progressBar);
-        progressBar.setVisibility(View.VISIBLE);
-        webView = (WebView) findViewById(R.id.webView);
+        //Functions
+        displayProgressBar();
         extractDataAndDisplay();
+        backPressedLogic();
+    }
 
+    public void displayProgressBar(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    public void backPressedLogic(){
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
             @Override
             public void handleOnBackPressed() {
@@ -99,7 +109,6 @@ public class Webview extends AppCompatActivity {
         clearActiveUriState();
         finish();
     }
-
 
     //extract data
     public void extractDataAndDisplay(){
@@ -132,12 +141,17 @@ public class Webview extends AppCompatActivity {
         String render1 ="file:///android_asset/Render1/ipynbviewer.html";
         String render2 ="file:///android_asset/Render2/index.html";
         webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setUseWideViewPort(false);
         webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT); //fix for render1 loading time
         webView.getSettings().setSupportZoom(true);
         webView.getSettings().setBuiltInZoomControls(true);
         webView.getSettings().setDisplayZoomControls(true);
-        webView.setInitialScale(100);
+        if(getApplication().getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+            webView.setInitialScale(100);
+            webView.getSettings().setUseWideViewPort(false);
+        }else if(getApplication().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+            webView.setInitialScale(100);
+            webView.getSettings().setUseWideViewPort(true);
+        }
         webView.addJavascriptInterface(new WebAppInterface(this), "AndroidMessage");
         webView.setWebViewClient(new WebViewClient() {
             public void onPageFinished(WebView view, String url) {
@@ -475,7 +489,6 @@ public class Webview extends AppCompatActivity {
         List<UriPermission> uriPermissionsAfter = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
     }
-
 
     //Orientation Change configuration to initial scales --> Orientation Save state is handled in Manifest file
     @Override
