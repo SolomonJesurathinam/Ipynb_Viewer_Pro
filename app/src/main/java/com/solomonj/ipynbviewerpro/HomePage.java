@@ -8,36 +8,50 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.StyleSpan;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 public class HomePage extends AppCompatActivity {
@@ -55,6 +69,141 @@ public class HomePage extends AppCompatActivity {
     private FileAdapter adapter;
     View closeButton;
     TextView homeTextLocal;
+    private FolderListAdapter adapter1;
+
+    //new changes
+    private static final int REQUEST_CODE = 1;
+    private ArrayList<Uri> selectedFolderUris = new ArrayList<>();
+    private ArrayList<String> selectedFolderNames = new ArrayList<>();
+
+    private final ActivityResultLauncher<Intent> folderPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    Uri folderUri = result.getData().getData();
+                    if (!selectedFolderUris.contains(folderUri)) {
+                        selectedFolderUris.add(folderUri);
+
+                        // Retrieve and store the folder name
+                        String folderName = getFolderName(folderUri);
+                        selectedFolderNames.add(folderName);
+
+                        // Persist permission
+                        int takeFlags = result.getData().getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        getContentResolver().takePersistableUriPermission(folderUri, takeFlags);
+
+                        saveUrisToSharedPreferences();
+                    }
+
+                    if (adapter1 != null) {
+                        adapter1.notifyDataSetChanged();
+                    }
+                    showFolderSelectionPopup();
+                }else {
+                    showFolderSelectionPopup();
+                }
+            }
+    );
+
+    private String getFolderName(Uri folderUri) {
+        DocumentFile documentFile = DocumentFile.fromTreeUri(this, folderUri);
+        if (documentFile != null && documentFile.isDirectory()) {
+            return documentFile.getName(); // This should return the display name of the folder
+        }
+        return "Unknown Folder";
+    }
+
+    private void saveUrisToSharedPreferences() {
+        Set<String> uriStrings = new HashSet<>();
+        for (Uri uri : selectedFolderUris) {
+            uriStrings.add(uri.toString());
+        }
+
+        SharedPreferences.Editor editor = homePagePref.edit();
+        editor.putStringSet("selectedUris", uriStrings);
+        editor.apply();
+    }
+
+    private void loadUrisFromSharedPreferences() {
+        Set<String> uriStrings = homePagePref.getStringSet("selectedUris", new HashSet<>());
+        selectedFolderUris.clear();
+        for (String uriString : uriStrings) {
+            selectedFolderUris.add(Uri.parse(uriString));
+        }
+
+        // Update folder names based on URIs
+        updateFolderNames();
+    }
+
+    private void updateFolderNames() {
+        selectedFolderNames.clear();
+        for (Uri uri : selectedFolderUris) {
+            selectedFolderNames.add(getFolderName(uri));
+        }
+        if (adapter1 != null) {
+            adapter1.notifyDataSetChanged();
+        }
+    }
+
+
+    public void showFolderSelectionPopup(){
+
+        // Inflate the popup layout
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_folder_selection, null);
+
+        // Create the PopupWindow
+        PopupWindow popupWindow = new PopupWindow(popupView, WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, true);
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        // Initialize the RecyclerView in the PopupWindow
+        RecyclerView recyclerViewPopup = popupView.findViewById(R.id.recyclerViewPopup);
+        if (adapter1 != null) {
+            adapter1 = new FolderListAdapter(selectedFolderNames, selectedFolderUris, this, this::deleteFolder);
+        }
+
+        recyclerViewPopup.setAdapter(adapter1);
+        recyclerViewPopup.setLayoutManager(new LinearLayoutManager(this));
+
+        // Handle the button click inside the popup
+        Button btnDone = popupView.findViewById(R.id.btnDone);
+        btnDone.setOnClickListener(v -> popupWindow.dismiss());
+
+        // Handle the close button click
+        Button btnClose = popupView.findViewById(R.id.btnClose);
+        btnClose.setOnClickListener(v -> popupWindow.dismiss());
+
+        //Handle for Select More
+        Button selectMore = popupView.findViewById(R.id.selectMore);
+        selectMore.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            // Launch the folder picker intent
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            folderPickerLauncher.launch(intent);
+        });
+
+        // Show the PopupWindow
+        popupWindow.showAtLocation(findViewById(R.id.homePage), Gravity.CENTER, 0, 0);
+    }
+
+    private void deleteFolder(String folderName, int position) {
+        selectedFolderNames.remove(position);
+        selectedFolderUris.remove(position);
+
+        // Update SharedPreferences
+        saveUrisToSharedPreferences();
+
+        if (adapter1 != null) {
+            adapter1.notifyItemRemoved(position);
+            adapter1.notifyItemRangeChanged(position, selectedFolderNames.size());
+        }
+    }
+
+
+    private void selectAnotherFolder(DialogInterface dialog, int which) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        folderPickerLauncher.launch(intent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +243,10 @@ public class HomePage extends AppCompatActivity {
         convertedFilesButton();
         searchIpynbfilesLogic();
 
+        loadUrisFromSharedPreferences();
+
+        // Initialize the adapter here with empty lists or existing data
+        adapter1 = new FolderListAdapter(new ArrayList<>(), new ArrayList<>(), this, this::deleteFolder);
     }
 
     public void feedbackLogic(){
@@ -296,10 +449,11 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    if(!Environment.isExternalStorageManager()){
-                        showPrivacycontentfullStorage();
+                    if(selectedFolderUris.size() <=0){
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                        folderPickerLauncher.launch(intent);
                     }else{
-                        Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
+                        showFolderSelectionPopup();
                     }
                 }
                 else{
