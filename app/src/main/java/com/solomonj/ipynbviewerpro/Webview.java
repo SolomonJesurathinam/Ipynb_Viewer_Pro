@@ -52,7 +52,10 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import androidx.activity.OnBackPressedCallback;
 
 public class Webview extends AppCompatActivity {
@@ -472,22 +475,46 @@ public class Webview extends AppCompatActivity {
     private void clearActiveUriState() {
         List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "Before clearing: " + uriPermissions.size());
-        String treeUri = webPref.getString("treeUri",null);
-        Uri savedUri = treeUri != null ? Uri.parse(treeUri) :null;
+
+        // Get the set of saved URIs
+        Set<Uri> savedUris = getSavedUris();
+
+        // Retrieve the additional Uri
+        String treeUriString = webPref.getString("treeUri", null);
+        Uri treeUri = treeUriString != null ? Uri.parse(treeUriString) : null;
+
         for (UriPermission permission : uriPermissions) {
-            Log.e("URI Permissions",permission.toString());
-            Log.e("URI Permissions",permission.getUri().toString());
-            if(savedUri != null && savedUri.equals(permission.getUri())){
-                Log.e("URI Permissions",savedUri.toString());
-                continue;
+            Log.e("URI Permissions", permission.toString());
+            Log.e("URI Permissions", permission.getUri().toString());
+
+            // Check if the current URI is in the saved URIs set or it is the treeUri
+            if (!savedUris.contains(permission.getUri()) && !permission.getUri().equals(treeUri)) {
+                getContentResolver().releasePersistableUriPermission(
+                        permission.getUri(),
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                );
+            } else {
+                Log.e("URI Permissions", "Retaining permission for: " + permission.getUri().toString());
             }
-            getContentResolver().releasePersistableUriPermission(
-                    permission.getUri(),
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            );
         }
+
         List<UriPermission> uriPermissionsAfter = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
+    }
+
+    private Set<Uri> getSavedUris() {
+        // Retrieve the set of URI strings from SharedPreferences
+        Set<String> uriStrings = webPref.getStringSet("selectedUris", new HashSet<>());
+
+        // Create a new set to store the converted URIs
+        Set<Uri> savedUris = new HashSet<>();
+
+        // Iterate over the string set and convert each string to a Uri
+        for (String uriString : uriStrings) {
+            savedUris.add(Uri.parse(uriString));
+        }
+
+        return savedUris;
     }
 
     //Orientation Change configuration to initial scales --> Orientation Save state is handled in Manifest file

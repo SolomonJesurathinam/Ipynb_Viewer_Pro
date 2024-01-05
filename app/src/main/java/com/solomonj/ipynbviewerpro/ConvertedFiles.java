@@ -37,7 +37,9 @@ import com.github.barteksc.pdfviewer.listener.OnRenderListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -458,23 +460,48 @@ public class ConvertedFiles extends AppCompatActivity {
     private void clearActiveUriState() {
         List<UriPermission> uriPermissions = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "Before clearing: " + uriPermissions.size());
-        String treeUri = convertPagePref.getString("treeUri",null);
-        Uri savedUri = treeUri != null ? Uri.parse(treeUri) :null;
+
+        // Get the set of saved URIs
+        Set<Uri> savedUris = getSavedUris();
+
+        // Retrieve the additional Uri
+        String treeUriString = convertPagePref.getString("treeUri", null);
+        Uri treeUri = treeUriString != null ? Uri.parse(treeUriString) : null;
+
         for (UriPermission permission : uriPermissions) {
-            Log.e("URI Permissions",permission.toString());
-            Log.e("URI Permissions",permission.getUri().toString());
-            if(savedUri != null && savedUri.equals(permission.getUri())){
-                Log.e("URI Permissions",savedUri.toString());
-                continue;
+            Log.e("URI Permissions", permission.toString());
+            Log.e("URI Permissions", permission.getUri().toString());
+
+            // Check if the current URI is in the saved URIs set or it is the treeUri
+            if (!savedUris.contains(permission.getUri()) && !permission.getUri().equals(treeUri)) {
+                getContentResolver().releasePersistableUriPermission(
+                        permission.getUri(),
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                );
+            } else {
+                Log.e("URI Permissions", "Retaining permission for: " + permission.getUri().toString());
             }
-            getContentResolver().releasePersistableUriPermission(
-                    permission.getUri(),
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            );
         }
+
         List<UriPermission> uriPermissionsAfter = getContentResolver().getPersistedUriPermissions();
         Log.d("URI Permissions", "After clearing: " + uriPermissionsAfter.size());
     }
+
+    private Set<Uri> getSavedUris() {
+        // Retrieve the set of URI strings from SharedPreferences
+        Set<String> uriStrings = convertPagePref.getStringSet("selectedUris", new HashSet<>());
+
+        // Create a new set to store the converted URIs
+        Set<Uri> savedUris = new HashSet<>();
+
+        // Iterate over the string set and convert each string to a Uri
+        for (String uriString : uriStrings) {
+            savedUris.add(Uri.parse(uriString));
+        }
+
+        return savedUris;
+    }
+
 
     public void searchAndFilterfiles(){
         //filter adapter

@@ -1,67 +1,89 @@
 package com.solomonj.ipynbviewerpro;
-import android.util.Log;
+
+import android.content.Context;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Filterable;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
-    private ArrayList<File> mFiles;
-    private ArrayList<File> mFilesFiltered;
-    private OnItemClickListener mListener;
+    private final List<Object> mOriginalItems;
+    private final List<Object> mFilteredItems;
+    private final OnItemClickListener mListener;
+    private final Context mContext;
 
-    public FileAdapter(ArrayList<File> files, OnItemClickListener listener) {
-        mFiles = files;
+    public FileAdapter(Context context, List<Object> items, OnItemClickListener listener) {
+        mContext = context;
+        mOriginalItems = items;
         mListener = listener;
-        mFilesFiltered = new ArrayList<>(files); // Initialize with all files
+        mFilteredItems = new ArrayList<>(items); // Initialize with all items
     }
 
     public interface OnItemClickListener {
-        void onItemClick(File file);
+        void onItemClick(Object item);
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.file_item, parent, false);
-        return new ViewHolder(view,mListener);
+        return new ViewHolder(view, mListener);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        Log.e("TESTING",mFilesFiltered.get(position).getName());
-        File file = mFilesFiltered.get(position);
-        holder.itemView.setTag(file);
-        holder.fileName.setText(file.getName());
-        Log.e("TESTING", file.getName());
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        Object item = mFilteredItems.get(position);
+        holder.itemView.setTag(item);
+
+        String fileName = "";
+        if (item instanceof File) {
+            fileName = ((File) item).getName();
+        } else if (item instanceof Uri) {
+            DocumentFile docFile = DocumentFile.fromSingleUri(mContext, (Uri) item);
+            if (docFile != null) {
+                fileName = docFile.getName();
+            }
+        }
+        holder.fileName.setText(fileName);
     }
 
     @Override
     public int getItemCount() {
-        return mFilesFiltered.size();
+        return mFilteredItems.size();
     }
 
     public void filter(String text) {
-        mFilesFiltered.clear();
+        mFilteredItems.clear();
         if (text.isEmpty()) {
-            mFilesFiltered.addAll(mFiles);
+            mFilteredItems.addAll(mOriginalItems);
         } else {
             text = text.toLowerCase();
-            for (File file : mFiles) {
-                if (file.getName().toLowerCase().contains(text)) {
-                    mFilesFiltered.add(file);
+            for (Object item : mOriginalItems) {
+                String fileName = "";
+                if (item instanceof File) {
+                    fileName = ((File) item).getName().toLowerCase();
+                } else if (item instanceof Uri) {
+                    DocumentFile docFile = DocumentFile.fromSingleUri(mContext, (Uri) item);
+                    if (docFile != null) {
+                        fileName = docFile.getName().toLowerCase();
+                    }
+                }
+                if (fileName.contains(text)) {
+                    mFilteredItems.add(item);
                 }
             }
         }
         notifyDataSetChanged();
     }
-
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView fileName;
@@ -69,14 +91,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
         public ViewHolder(View itemView, final OnItemClickListener listener) {
             super(itemView);
             fileName = itemView.findViewById(R.id.file_name);
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (listener != null) {
-                        int position = getAdapterPosition();
-                        if (position != RecyclerView.NO_POSITION) {
-                            listener.onItemClick((File) itemView.getTag());
-                        }
+            itemView.setOnClickListener(view -> {
+                if (listener != null) {
+                    int position = getAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        listener.onItemClick(itemView.getTag());
                     }
                 }
             });

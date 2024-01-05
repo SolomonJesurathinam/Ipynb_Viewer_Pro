@@ -27,12 +27,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
-import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.Gravity;
@@ -50,8 +51,10 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.Set;
-
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 public class HomePage extends AppCompatActivity {
@@ -70,12 +73,60 @@ public class HomePage extends AppCompatActivity {
     View closeButton;
     TextView homeTextLocal;
     private FolderListAdapter adapter1;
-
-    //new changes
-    private static final int REQUEST_CODE = 1;
     private ArrayList<Uri> selectedFolderUris = new ArrayList<>();
     private ArrayList<String> selectedFolderNames = new ArrayList<>();
+    private HandlerThread handlerThread;
+    private Handler backgroundHandler;
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.homepage);
+
+        handlerThread = new HandlerThread("FileSearchThread");
+        handlerThread.start();
+        backgroundHandler = new Handler(handlerThread.getLooper());
+
+        //Shared Preference
+        homePagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        homePagePref.getString("renderKey","Real");
+
+        //Locators
+        recyclerLayout = findViewById(R.id.recyclerLayout);
+        choosefile = findViewById(R.id.choosefile);
+        radioRender = findViewById(R.id.radioRender);
+        retrieveAll = findViewById(R.id.retrieveAll);
+        recyclerView = findViewById(R.id.recyclerViewFiles);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        feedback = findViewById(R.id.feedback);
+        convertOnline = findViewById(R.id.convertOnline);
+        convertedFiles = findViewById(R.id.convertedFiles);
+        searchIpynb = findViewById(R.id.searchIpynb);
+        closeButton = searchIpynb.findViewById(androidx.appcompat.R.id.search_close_btn);
+        homeTextLocal = findViewById(R.id.homeTextLocal);
+
+        //Functions
+        fileHandling();
+        radiobuttonLogic();
+        //Android 13
+        //storagePermissionandroid11();
+        //Storage access
+        scanFilesLogic();
+        //displaying all the files
+        loadUrisFromSharedPreferences();
+        displayRecyclerView();
+        feedbackLogic();
+        convertOnlinebutton();
+        convertedFilesButton();
+        searchIpynbfilesLogic();
+
+
+
+        // Initialize the adapter here with empty lists or existing data
+        adapter1 = new FolderListAdapter(new ArrayList<>(), new ArrayList<>(), this, this::deleteFolder);
+    }
+
+    //Logic for android 10+ scan files
     private final ActivityResultLauncher<Intent> folderPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -105,6 +156,7 @@ public class HomePage extends AppCompatActivity {
             }
     );
 
+    //Folder name for scan files
     private String getFolderName(Uri folderUri) {
         DocumentFile documentFile = DocumentFile.fromTreeUri(this, folderUri);
         if (documentFile != null && documentFile.isDirectory()) {
@@ -113,6 +165,7 @@ public class HomePage extends AppCompatActivity {
         return "Unknown Folder";
     }
 
+    //save uri to shared preferences
     private void saveUrisToSharedPreferences() {
         Set<String> uriStrings = new HashSet<>();
         for (Uri uri : selectedFolderUris) {
@@ -124,6 +177,7 @@ public class HomePage extends AppCompatActivity {
         editor.apply();
     }
 
+    //load uri from sharedpreferences
     private void loadUrisFromSharedPreferences() {
         Set<String> uriStrings = homePagePref.getStringSet("selectedUris", new HashSet<>());
         selectedFolderUris.clear();
@@ -135,6 +189,7 @@ public class HomePage extends AppCompatActivity {
         updateFolderNames();
     }
 
+    //update folder names in the scan files
     private void updateFolderNames() {
         selectedFolderNames.clear();
         for (Uri uri : selectedFolderUris) {
@@ -145,7 +200,7 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-
+    //display the folder selection popup
     public void showFolderSelectionPopup(){
 
         // Inflate the popup layout
@@ -167,11 +222,23 @@ public class HomePage extends AppCompatActivity {
 
         // Handle the button click inside the popup
         Button btnDone = popupView.findViewById(R.id.btnDone);
-        btnDone.setOnClickListener(v -> popupWindow.dismiss());
+        btnDone.setOnClickListener(new View.OnClickListener() {
+                                       @Override
+                                       public void onClick(View v) {
+                                           popupWindow.dismiss();
+                                           displayRecyclerView();
+                                       }
+                                   });
 
         // Handle the close button click
         Button btnClose = popupView.findViewById(R.id.btnClose);
-        btnClose.setOnClickListener(v -> popupWindow.dismiss());
+        btnClose.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View v) {
+                                            popupWindow.dismiss();
+                                            displayRecyclerView();
+                                        }
+                                    });
 
         //Handle for Select More
         Button selectMore = popupView.findViewById(R.id.selectMore);
@@ -186,6 +253,7 @@ public class HomePage extends AppCompatActivity {
         popupWindow.showAtLocation(findViewById(R.id.homePage), Gravity.CENTER, 0, 0);
     }
 
+    //delete folder logic for scan files
     private void deleteFolder(String folderName, int position) {
         selectedFolderNames.remove(position);
         selectedFolderUris.remove(position);
@@ -199,56 +267,7 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-
-    private void selectAnotherFolder(DialogInterface dialog, int which) {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        folderPickerLauncher.launch(intent);
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.homepage);
-
-        //Shared Preference
-        homePagePref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        homePagePref.getString("renderKey","Real");
-
-        //Locators
-        recyclerLayout = findViewById(R.id.recyclerLayout);
-        choosefile = findViewById(R.id.choosefile);
-        radioRender = findViewById(R.id.radioRender);
-        retrieveAll = findViewById(R.id.retrieveAll);
-        recyclerView = findViewById(R.id.recyclerViewFiles);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        feedback = findViewById(R.id.feedback);
-        convertOnline = findViewById(R.id.convertOnline);
-        convertedFiles = findViewById(R.id.convertedFiles);
-        searchIpynb = findViewById(R.id.searchIpynb);
-        closeButton = searchIpynb.findViewById(androidx.appcompat.R.id.search_close_btn);
-        homeTextLocal = findViewById(R.id.homeTextLocal);
-
-
-        //Functions
-        fileHandling();
-        radiobuttonLogic();
-        //Android 13
-        storagePermissionandroid11();
-        //Storage access
-        scanFilesLogic();
-        //displaying all the files
-        displayRecyclerView();
-        feedbackLogic();
-        convertOnlinebutton();
-        convertedFilesButton();
-        searchIpynbfilesLogic();
-
-        loadUrisFromSharedPreferences();
-
-        // Initialize the adapter here with empty lists or existing data
-        adapter1 = new FolderListAdapter(new ArrayList<>(), new ArrayList<>(), this, this::deleteFolder);
-    }
-
+    //feedback button logic
     public void feedbackLogic(){
         feedback.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -264,6 +283,7 @@ public class HomePage extends AppCompatActivity {
         });
     }
 
+    //convert online button logic
     public void convertOnlinebutton(){
         convertOnline.setOnClickListener(new View.OnClickListener() {
         @Override
@@ -279,6 +299,7 @@ public class HomePage extends AppCompatActivity {
     });
     }
 
+    //converted files button logic
     public void convertedFilesButton(){
         convertedFiles.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -377,25 +398,9 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-    //handling storage permission result Android>11
-    public void storagePermissionandroid11(){
-        manageExternalStorageActivityResultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    // Handle the result
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        if (Environment.isExternalStorageManager()) {
-                            displayRecyclerView();
-                            Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
-
-                        }
-                    }
-                });
-    }
-
     //displaying recycler view
     public void displayRecyclerView(){
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+        if (selectedFolderUris.size() >0) {
             retrieveIpynbFiles();
         }
         else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
@@ -406,40 +411,74 @@ public class HomePage extends AppCompatActivity {
 
     //Get al ipynb files and display in the recycler view
     public void retrieveIpynbFiles(){
-        // You have the permission, start file scan
-        ArrayList<File> ipynbFiles = findIpynbFiles(Environment.getExternalStorageDirectory());
-        adapter = new FileAdapter(ipynbFiles, new FileAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(File file) {
-                String javaURI = file.toURI().toString();
-                Uri uri = Uri.parse(javaURI);
-                Intent intent = new Intent(getApplicationContext(), Webview.class);
-                intent.putExtra("filePath",uri.toString());
-                startActivity(intent);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, R.anim.slide_up, R.anim.stay);
-                } else {
-                    overridePendingTransition(R.anim.slide_up, R.anim.stay);
-                }
-            }
-        });
-        recyclerView.setAdapter(adapter);
-        adapter.notifyDataSetChanged();
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                recyclerLayout.setVisibility(View.VISIBLE);
-                //retrieveAll.setVisibility(View.INVISIBLE);
-            }
-        });
-        if(ipynbFiles.size() >0){
+        backgroundHandler.post(() -> {
+                    List<Object> ipynbSources = new ArrayList<>();
+                    Set<String> processedDocumentIds = new HashSet<>();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        for (Uri folderUri : selectedFolderUris) {
+                            ipynbSources.addAll(findIpynbFilesWithDocumentsContract(folderUri, processedDocumentIds));
+                        }
+                    } else {
+                        ipynbSources.addAll(findIpynbFiles(Uri.fromFile(Environment.getExternalStorageDirectory())));
+                    }
+
+            // Update UI on the main thread
+            runOnUiThread(() -> {
+                // Set your adapter here
+                adapter = new FileAdapter(this, ipynbSources, new FileAdapter.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(Object item) {
+                        Uri uri;
+                        if (item instanceof File) {
+                            // If it's a File, convert it to a Uri
+                            uri = Uri.fromFile((File) item);
+                        } else if (item instanceof Uri) {
+                            // If it's already a Uri, use it directly
+                            uri = (Uri) item;
+                        } else {
+                            // If the item is neither a File nor a Uri, handle this error case
+                            Log.e("FileAdapter", "The clicked item is neither a File nor a Uri.");
+                            return;
+                        }
+
+                        // Proceed with the Uri
+                        Intent intent = new Intent(getApplicationContext(), Webview.class);
+                        intent.putExtra("filePath", uri.toString());
+                        startActivity(intent);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, R.anim.slide_up, R.anim.stay);
+                        } else {
+                            overridePendingTransition(R.anim.slide_up, R.anim.stay);
+                        }
+                    }
+                });
+
+                recyclerView.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            });
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    searchIpynb.setVisibility(View.VISIBLE);
+                    recyclerLayout.setVisibility(View.VISIBLE);
+                    //retrieveAll.setVisibility(View.INVISIBLE);
                 }
             });
-        }
+            if(ipynbSources.size() >0){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        searchIpynb.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        });
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handlerThread.quitSafely();
     }
 
 
@@ -502,57 +541,6 @@ public class HomePage extends AppCompatActivity {
         startActivity(intent);
     }
 
-    //Dialog box
-    private void showPrivacycontentfullStorage() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.dialog_custom, null);
-        builder.setView(dialogView);
-
-        TextView tvPermissionsMessage = dialogView.findViewById(R.id.tvPermissionsMessage);
-        TextView tvPrivacyPolicyMessage = dialogView.findViewById(R.id.tvPrivacyPolicyMessage);
-
-        // Create a SpannableString to style the text
-        String normalText = " For devices running Android 11 and above, our app requires permission to access storage to scan for and display .ipynb files. This permission is critical for the app’s functionality, allowing you to manage and view your notebooks.";
-        SpannableString styledText = new SpannableString("Full Storage Access:" + normalText);
-        styledText.setSpan(new StyleSpan(Typeface.BOLD), 0, "Full Storage Access:".length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        tvPermissionsMessage.setText(styledText);
-
-        // Create a SpannableString to style the text
-        String normalText1 = " We value your privacy. Our app does not collect or transmit any personal data. All permissions requested are solely for enhancing your user experience and ensuring the app's core features function correctly.";
-        SpannableString styledText1 = new SpannableString("Your Privacy Matters:" + normalText1);
-        styledText1.setSpan(new StyleSpan(Typeface.BOLD), 0, "Your Privacy Matters:".length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        tvPrivacyPolicyMessage.setText(styledText1);
-
-        builder.setPositiveButton("Grant Permission", (dialog, id) -> {
-            openFullStorageSettings();
-        });
-        builder.setNegativeButton("Cancel", null);
-
-        AlertDialog dialog = builder.create();
-        dialog.setOnShowListener(dialogInterface -> {
-            // Get the positive button and change its color to black
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.black));
-
-            // Get the negative button and change its color to black
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.black));
-        });
-        dialog.show();
-    }
-
-
-    //Open settings to provide manual storage access
-    private void openFullStorageSettings() {
-        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-        Uri uri = Uri.fromParts("package", getPackageName(), null);
-        intent.setData(uri);
-        manageExternalStorageActivityResultLauncher.launch(intent);
-    }
-
-
     //get List of ipynb files
     private ArrayList<File> findIpynbFiles(File root) {
         ArrayList<File> fileList = new ArrayList<>();
@@ -577,6 +565,62 @@ public class HomePage extends AppCompatActivity {
         }
         return fileList;
     }
+
+    private List<Object> findIpynbFiles(Uri directoryUri) {
+        List<Object> ipynbSourceList = new ArrayList<>();
+
+        File directory = new File(directoryUri.getPath());
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    ipynbSourceList.addAll(findIpynbFiles(Uri.fromFile(file)));
+                } else if (file.isFile() && file.getName().toLowerCase().endsWith(".ipynb")) {
+                    ipynbSourceList.add(file);
+                }
+            }
+        }
+        return ipynbSourceList;
+    }
+
+    private List<Uri> findIpynbFilesWithDocumentsContract(Uri rootUri, Set<String> processedDocumentIds) {
+        List<Uri> ipynbFiles = new ArrayList<>();
+
+        String rootDocumentId = DocumentsContract.getTreeDocumentId(rootUri);
+        if (!processedDocumentIds.add(rootDocumentId)) {
+            // This directory has already been processed, skip it
+            return ipynbFiles;
+        }
+
+        String[] projection = {
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+        };
+
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, rootDocumentId);
+
+        try (Cursor cursor = getContentResolver().query(childrenUri, projection, null, null, null)) {
+            while (cursor != null && cursor.moveToNext()) {
+                String documentId = cursor.getString(0);
+                String displayName = cursor.getString(1);
+                String mimeType = cursor.getString(2);
+
+                if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType)) {
+                    Uri newUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, documentId);
+                    ipynbFiles.addAll(findIpynbFilesWithDocumentsContract(newUri, processedDocumentIds));
+                } else if (displayName != null && displayName.toLowerCase().endsWith(".ipynb")) {
+                    Uri fileUri = DocumentsContract.buildDocumentUriUsingTree(rootUri, documentId);
+                    ipynbFiles.add(fileUri);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Log.e("FilesList","Processed URIS "+rootUri.toString());
+        return ipynbFiles;
+    }
+
 
     public String getFilename(Context context, Uri uri){
         String fileName = null;
