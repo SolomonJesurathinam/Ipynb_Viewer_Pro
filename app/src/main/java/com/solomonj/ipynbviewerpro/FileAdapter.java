@@ -61,29 +61,34 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.ViewHolder> {
         return mFilteredItems.size();
     }
 
-    public void filter(String text) {
-        mFilteredItems.clear();
-        if (text.isEmpty()) {
-            mFilteredItems.addAll(mOriginalItems);
-        } else {
-            text = text.toLowerCase();
-            for (Object item : mOriginalItems) {
-                String fileName = "";
-                if (item instanceof File) {
-                    fileName = ((File) item).getName().toLowerCase();
-                } else if (item instanceof Uri) {
-                    DocumentFile docFile = DocumentFile.fromSingleUri(mContext, (Uri) item);
-                    if (docFile != null) {
-                        fileName = docFile.getName().toLowerCase();
+    public void filter(String text, Runnable callback) {
+        final String finalText = text.toLowerCase(); // Create a final copy of text
+
+        new Thread(() -> {
+            mFilteredItems.clear();
+            if (finalText.isEmpty()) {
+                mFilteredItems.addAll(mOriginalItems);
+            } else {
+                for (Object item : mOriginalItems) {
+                    String fileName = "";
+                    if (item instanceof File) {
+                        fileName = ((File) item).getName().toLowerCase();
+                    } else if (item instanceof Uri) {
+                        DocumentFile docFile = DocumentFile.fromSingleUri(mContext, (Uri) item);
+                        if (docFile != null) {
+                            fileName = docFile.getName().toLowerCase();
+                        }
+                    }
+                    if (fileName.contains(finalText)) {
+                        mFilteredItems.add(item);
                     }
                 }
-                if (fileName.contains(text)) {
-                    mFilteredItems.add(item);
-                }
             }
-        }
-        notifyDataSetChanged();
+            callback.run();
+        }).start();
     }
+
+
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView fileName;

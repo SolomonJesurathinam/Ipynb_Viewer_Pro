@@ -28,7 +28,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -155,70 +154,38 @@ public class ConvertedFiles extends AppCompatActivity {
     }
 
     public void getPermissionAndDisplay(){
-        if (Build.VERSION.SDK_INT >= 30) {
-            if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
-                if (Environment.isExternalStorageManager()) {
-                    File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
-                    displayRecyclerView(Uri.fromFile(downloadsFolder));
-                    Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
-                }
-                else if(Build.VERSION.SDK_INT >=30 && Build.VERSION.SDK_INT <33){
-                    if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-                        ActivityCompat.requestPermissions(ConvertedFiles.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
-                    }else{
-                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
-                        displayRecyclerView(Uri.fromFile(downloadsFolder));
-                        Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-            else if(Build.VERSION.SDK_INT >= 33){
-                if(convertPagePref.getString("treeUri",null) != null){
-                    showSearchAgainDialog();
-                }else{
-                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                    openDocumentTree.launch(intent);
-                    Toast.makeText(this,"Select 'Documents/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
-                }
-            }
-        }
-        else if(Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT <=29){
-            if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-                ActivityCompat.requestPermissions(ConvertedFiles.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
-            }else{
+        if (Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT <33) {
+            if (ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(ConvertedFiles.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+            } else {
                 File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                 displayRecyclerView(Uri.fromFile(downloadsFolder));
                 Toast.makeText(this, "Scan Complete", Toast.LENGTH_SHORT).show();
+            }
+        }
+        else if(Build.VERSION.SDK_INT >= 33){
+            if(convertPagePref.getString("treeUri",null) != null){
+                showSearchAgainDialog();
+            }else{
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                openDocumentTree.launch(intent);
+                Toast.makeText(this,"Select 'Documents/IpynbViewer' folder manually",Toast.LENGTH_LONG).show();
             }
         }
     }
 
     public void checkPermissionAndDisplay(){
         clearActiveUriState();
-        if (Build.VERSION.SDK_INT >= 30) {
-            if (Build.VERSION.SDK_INT >= 30 && Build.VERSION.SDK_INT <33) {
-                if (Environment.isExternalStorageManager()) {
+        if(Build.VERSION.SDK_INT >=28 && Build.VERSION.SDK_INT <33){
+            if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
                     File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
                     displayRecyclerView(Uri.fromFile(downloadsFolder));
                 }
-                else if(Build.VERSION.SDK_INT >=30 && Build.VERSION.SDK_INT <33){
-                    if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-                        File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
-                        displayRecyclerView(Uri.fromFile(downloadsFolder));
-                    }
-                }
             }
-            else if(Build.VERSION.SDK_INT >= 33){
-                Uri existingDirectoryUri = checkForExistingDirectoryAccess();
-                if (existingDirectoryUri != null) {
-                    displayRecyclerView(existingDirectoryUri);
-                }
-            }
-        }
-        else if(Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT <=29){
-            if(ContextCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-                File downloadsFolder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "IpynbViewer");
-                displayRecyclerView(Uri.fromFile(downloadsFolder));
+        else if(Build.VERSION.SDK_INT >= 33){
+            Uri existingDirectoryUri = checkForExistingDirectoryAccess();
+            if (existingDirectoryUri != null) {
+                displayRecyclerView(existingDirectoryUri);
             }
         }
     }

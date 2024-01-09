@@ -15,13 +15,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -32,9 +30,6 @@ import android.os.HandlerThread;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -48,12 +43,9 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -65,7 +57,6 @@ public class HomePage extends AppCompatActivity {
     RadioGroup radioRender;
     private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 1;
     RecyclerView recyclerView;
-    private ActivityResultLauncher<Intent> manageExternalStorageActivityResultLauncher;
     LinearLayout recyclerLayout;
     ImageView feedback, convertedFiles;
     SearchView searchIpynb;
@@ -77,12 +68,17 @@ public class HomePage extends AppCompatActivity {
     private ArrayList<String> selectedFolderNames = new ArrayList<>();
     private HandlerThread handlerThread;
     private Handler backgroundHandler;
+    private HandlerThread filterThread;
+    private Handler filterHandler;
+    private final Handler searchHandler = new Handler();
+    private Runnable searchRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
 
+        //handler for recycler view
         handlerThread = new HandlerThread("FileSearchThread");
         handlerThread.start();
         backgroundHandler = new Handler(handlerThread.getLooper());
@@ -108,8 +104,6 @@ public class HomePage extends AppCompatActivity {
         //Functions
         fileHandling();
         radiobuttonLogic();
-        //Android 13
-        //storagePermissionandroid11();
         //Storage access
         scanFilesLogic();
         //displaying all the files
@@ -118,9 +112,11 @@ public class HomePage extends AppCompatActivity {
         feedbackLogic();
         convertOnlinebutton();
         convertedFilesButton();
+        // Initialize the HandlerThread and Handler
+        filterThread = new HandlerThread("FilterThread");
+        filterThread.start();
+        filterHandler = new Handler(filterThread.getLooper());
         searchIpynbfilesLogic();
-
-
 
         // Initialize the adapter here with empty lists or existing data
         adapter1 = new FolderListAdapter(new ArrayList<>(), new ArrayList<>(), this, this::deleteFolder);
@@ -227,6 +223,7 @@ public class HomePage extends AppCompatActivity {
                                        public void onClick(View v) {
                                            popupWindow.dismiss();
                                            displayRecyclerView();
+                                           Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
                                        }
                                    });
 
@@ -237,6 +234,7 @@ public class HomePage extends AppCompatActivity {
                                         public void onClick(View v) {
                                             popupWindow.dismiss();
                                             displayRecyclerView();
+                                            Toast.makeText(getApplicationContext(),"Scan Complete",Toast.LENGTH_SHORT).show();
                                         }
                                     });
 
@@ -408,7 +406,6 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-
     //Get al ipynb files and display in the recycler view
     public void retrieveIpynbFiles(){
         backgroundHandler.post(() -> {
@@ -479,6 +476,9 @@ public class HomePage extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         handlerThread.quitSafely();
+        if (filterThread != null) {
+            filterThread.quitSafely();
+        }
     }
 
 
@@ -491,6 +491,7 @@ public class HomePage extends AppCompatActivity {
                     if(selectedFolderUris.size() <=0){
                         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                         folderPickerLauncher.launch(intent);
+                        Toast.makeText(getApplicationContext(),"Select the Folders containing Ipynb files",Toast.LENGTH_LONG).show();
                     }else{
                         showFolderSelectionPopup();
                     }
@@ -541,31 +542,7 @@ public class HomePage extends AppCompatActivity {
         startActivity(intent);
     }
 
-    //get List of ipynb files
-    private ArrayList<File> findIpynbFiles(File root) {
-        ArrayList<File> fileList = new ArrayList<>();
-        // Create a FilenameFilter to filter for .ipynb files
-        FilenameFilter ipynbFilter = new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".ipynb");
-            }
-        };
-
-        File[] files = root.listFiles(); // Here you will list all the files in the directory.
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    // Recursively search the directory for .ipynb files.
-                    fileList.addAll(findIpynbFiles(file));
-                } else if (file.isFile() && ipynbFilter.accept(file.getParentFile(), file.getName())) {
-                    fileList.add(file);
-                }
-            }
-        }
-        return fileList;
-    }
-
+    //get List of ipynb files - files
     private List<Object> findIpynbFiles(Uri directoryUri) {
         List<Object> ipynbSourceList = new ArrayList<>();
 
@@ -583,6 +560,7 @@ public class HomePage extends AppCompatActivity {
         return ipynbSourceList;
     }
 
+    //get list of files uri
     private List<Uri> findIpynbFilesWithDocumentsContract(Uri rootUri, Set<String> processedDocumentIds) {
         List<Uri> ipynbFiles = new ArrayList<>();
 
@@ -621,7 +599,6 @@ public class HomePage extends AppCompatActivity {
         return ipynbFiles;
     }
 
-
     public String getFilename(Context context, Uri uri){
         String fileName = null;
         if(uri.getScheme().equalsIgnoreCase("content")){
@@ -653,7 +630,15 @@ public class HomePage extends AppCompatActivity {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                adapter.filter(newText);
+                if (searchRunnable != null) {
+                    searchHandler.removeCallbacks(searchRunnable);
+                }
+
+                searchRunnable = () -> filterHandler.post(() -> {
+                    adapter.filter(newText, () -> runOnUiThread(() -> adapter.notifyDataSetChanged()));
+                });
+
+                searchHandler.postDelayed(searchRunnable, 300); // Adjust the delay as needed
                 return false;
             }
         });
